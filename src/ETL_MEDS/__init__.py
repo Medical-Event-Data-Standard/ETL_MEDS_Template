@@ -18,6 +18,7 @@ PRE_MEDS_CFG = files(__package_name__).joinpath("configs/pre_MEDS.yaml")
 DATASET_CFG = files(__package_name__).joinpath("dataset.yaml")
 
 dataset_info = OmegaConf.load(DATASET_CFG)
+premeds_cfg = OmegaConf.load(PRE_MEDS_CFG)
 
 HAS_PRE_MEDS = PRE_MEDS_PY.exists()
 

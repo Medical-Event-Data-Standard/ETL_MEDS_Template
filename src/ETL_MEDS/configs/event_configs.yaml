@@ -1,4 +1,5 @@
 subject_id_col: subject_id
+
 hosp/admissions:
   ed_registration:
     code: ED_REGISTRATION

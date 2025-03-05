@@ -18,41 +18,41 @@ repos:
       - id: check-toml
       - id: check-case-conflict
       - id: check-added-large-files
-        args: [--maxkb, "800"]
+        args: [ --maxkb, "800" ]
 
   # python code formatting
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
-        args: [--line-length, "110"]
+        args: [ --line-length, "110" ]
 
   # python import sorting
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
       - id: isort
-        args: ["--profile", "black", "--filter-files", "-o", "wandb"]
+        args: [ "--profile", "black", "--filter-files", "-o", "wandb" ]
 
   - repo: https://github.com/PyCQA/autoflake
     rev: v2.3.1
     hooks:
       - id: autoflake
-        args: [--in-place, --remove-all-unused-imports]
+        args: [ --in-place, --remove-all-unused-imports ]
 
   # python upgrading syntax to newer version
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.19.0
     hooks:
       - id: pyupgrade
-        args: [--py311-plus]
+        args: [ --py311-plus ]
 
   # python docstring formatting
   - repo: https://github.com/myint/docformatter
     rev: v1.7.5
     hooks:
       - id: docformatter
-        args: [--in-place, --wrap-summaries=110, --wrap-descriptions=110]
+        args: [ --in-place, --wrap-summaries=110, --wrap-descriptions=110 ]
 
   # python check (PEP8), programming errors and code complexity
   - repo: https://github.com/PyCQA/flake8
@@ -76,7 +76,7 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        types: [yaml]
+        types: [ yaml ]
         exclude: "environment.yaml"
 
   # shell scripts linter
@@ -90,7 +90,7 @@ repos:
     rev: 0.7.18
     hooks:
       - id: mdformat
-        args: ["--number"]
+        args: [ "--number" ]
         additional_dependencies:
           - mdformat-gfm
           - mdformat-tables
@@ -122,9 +122,9 @@ repos:
     rev: 1.8.7
     hooks:
       - id: nbqa-black
-        args: ["--line-length=110"]
+        args: [ "--line-length=110" ]
       - id: nbqa-isort
-        args: ["--profile=black"]
+        args: [ "--profile=black" ]
       - id: nbqa-flake8
         args:
           [
