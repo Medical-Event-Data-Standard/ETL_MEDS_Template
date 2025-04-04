@@ -167,7 +167,8 @@ Then, run:
 pre-commit run --all-files
 ```
 This will automatically reformat your files (if possible) to conform with the linting requirements.
-Note: currently we need pre-commit<4 to run the `docformatter` hook.
+> [!NOTE]  
+> Currently we need pre-commit\<4 to run the `docformatter` hook.
 
 ### External Services
 
