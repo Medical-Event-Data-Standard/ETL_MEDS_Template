@@ -1,0 +1,14 @@
+# OUTPUT DATA cols should never contain subject_id or admission_id
+subject_id: "REPLACE_ME"
+admission_id: "REPLACE_ME"
+raw_data_extensions: ["*.parquet", "*.csv", "*.csv.gz"]
+
+cases:
+  # Column that contains the offset
+  offset_col: ["REPLACE_ME"]
+  # Output column that contains the pseudotime computed from offset
+  pseudotime_col: ["REPLACE_ME"]
+  # Key that links concpet ID's to concepts
+  reference_col: ["REPLACE_ME"]
+  # Output columns that you do not want to drop
+  output_data_cols: ["REPLACE_ME"]
