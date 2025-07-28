@@ -1,5 +1,6 @@
+from importlib.metadata import PackageNotFoundError, version
 from importlib.resources import files
-from importlib.metadata import version, PackageNotFoundError
+
 from omegaconf import OmegaConf
 
 __package_name__ = "EXAMPLE_MEDS"

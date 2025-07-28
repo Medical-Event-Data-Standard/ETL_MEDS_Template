@@ -20,10 +20,7 @@ def test_example_package_pipeline():
         )
         env["PYTHONPATH"] = f"examples/example_package/src:{env.get('PYTHONPATH', '')}"
 
-        event_cfg = (
-            Path("examples/example_package/src/EXAMPLE_MEDS/configs/event_configs.yaml")
-            .resolve()
-        )
+        event_cfg = Path("examples/example_package/src/EXAMPLE_MEDS/configs/event_configs.yaml").resolve()
         command_parts = [
             "MEDS_transform-pipeline",
             "pkg://EXAMPLE_MEDS.configs.ETL.yaml",

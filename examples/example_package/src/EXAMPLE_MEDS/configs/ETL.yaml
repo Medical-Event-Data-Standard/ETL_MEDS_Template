@@ -22,7 +22,6 @@ event_conversion_config_fp: ${oc.env:EVENT_CONVERSION_CONFIG_FP}
 input_dir: ${oc.env:PRE_MEDS_DIR}
 output_dir: ${oc.env:MEDS_COHORT_DIR}
 
-
 shards_map_fp: ${output_dir}/metadata/.shards.json
 
 stage_configs:
