@@ -1,0 +1,6 @@
+dataset_name: EXAMPLE
+raw_dataset_version: "1.0"
+urls:
+  dataset: []
+  demo: []
+  common: []
