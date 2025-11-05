@@ -1,0 +1,30 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: MEDS ETL Template
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Matthew
+    family-names: McDermott
+    email: mattmcdermott8@gmail.com
+    orcid: 'https://orcid.org/0000-0001-6048-9707'
+  - given-names: Robin
+    family-names: van de Water
+    orcid: 'https://orcid.org/0000-0002-2895-4872'
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.17536399
+repository-code: >-
+  https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template
+abstract: >
+  This is a template repository for a MEDS-Transforms
+  powered extraction pipeline for a custom dataset. Once you
+  have customized the repository to your dataset (see
+  instructions below), you will be able to run your
+  extraction pipeline with a few simple command-line
+  commands.
+license: MIT
