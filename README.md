@@ -26,21 +26,21 @@ to end example!
 
 1. Initialize a new repository using this template repository.
 2. Rename the directory after `src/` to the name of your package in python-friendly format (e.g.,
-    `MIMIC_IV_MEDS`).
+   `MIMIC_IV_MEDS`).
 3. Customize the following external services:
-    - [CodeCov](#codecov)
-    - [PyPI](#pypi)
-    - [Zenodo](#zenodo)
+   - [CodeCov](#codecov)
+   - [PyPI](#pypi)
+   - [Zenodo](#zenodo)
 4. Customize the following code points:
-    - [`pyproject.toml`](#pyprojecttoml)
-    - [`src/.../__init__.py`](#srcinitpy)
-    - [`src/.../dataset.yaml`](#srcdatasetyaml)
-    - [`src/.../pre_MEDS.py`](#srcpre_medspy)
-    - [`src/.../event_configs.yaml`](#srcevent_configsyaml)
-    - [`README.md`](#readmemd)
-    - [`tests/e2e_demo_test.py`](#testse2e_demo_testpy)
-    - [`.pre-commit-config`](#pre-commit-config)
-    - [`CITATION.cff`](#citationcff)
+   - [`pyproject.toml`](#pyprojecttoml)
+   - [`src/.../__init__.py`](#srcinitpy)
+   - [`src/.../dataset.yaml`](#srcdatasetyaml)
+   - [`src/.../pre_MEDS.py`](#srcpre_medspy)
+   - [`src/.../event_configs.yaml`](#srcevent_configsyaml)
+   - [`README.md`](#readmemd)
+   - [`tests/e2e_demo_test.py`](#testse2e_demo_testpy)
+   - [`.pre-commit-config`](#pre-commit-config)
+   - [`CITATION.cff`](#citationcff)
 
 ### External Services
 
@@ -49,27 +49,28 @@ to end example!
 1. Go to [CodeCov](https://codecov.io/) and add make an account or log-in as needed.
 2. Follow the instructions to configure your new repository with CodeCov.
 3. Copy the badge markdown from CodeCov and paste it into the `README.md` file. To find the badge markdown
-    link, go to your repository in CodeCov, click on the "Configuration" tab, click on the "Badges and
-    Graphs" option, then copy the markdown link from the top section and paste it in the corresponding line
-    of the README, in place of the default link included above.
+   link, go to your repository in CodeCov, click on the "Configuration" tab, click on the "Badges and
+   Graphs" option, then copy the markdown link from the top section and paste it in the corresponding line
+   of the README, in place of the default link included above.
 4. It will now track the test coverage of your ETL, including running the full pipeline against the linked
-    demo data you provide in `dataset.yaml`.
+   demo data you provide in `dataset.yaml`.
 
 #### PyPI
 
 1. Go to [PyPI](https://pypi.org/) and add make an account or log-in as needed.
 2. Go to your account settings and go to the "Publishing" settings.
 3. Set up a new "Trusted Publisher" for your GitHub Repository (e.g., see the image below). Ensure your
-    package name matches in the trusted publisher and in your `pyproject.toml` file!
+   package name matches in the trusted publisher and in your `pyproject.toml` file!
 4. Now, if, on the local command line, you run `git tag 0.0.1`, then `git push origin 0.0.1`, it will push a
-    new, tagged version of your code as of the local commit when you ran the command both to a new GitHub
-    Release and to PyPI. This will allow you to install your package via `pip install PACKAGE_NAME` and to manage
-    versions effectively!
+   new, tagged version of your code as of the local commit when you ran the command both to a new GitHub
+   Release and to PyPI. This will allow you to install your package via `pip install PACKAGE_NAME` and to manage
+   versions effectively!
 
 Example trusted publisher set-up:
 ![PyPI Trusted Publisher](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/blob/main/static/pypi_trusted_publisher_example.png?raw=true)
 
 #### Zenodo
+
 Zenodo provides a way to archive your code and assign a DOI to it for citation purposes. This is optional, but
 if you do not set it up, be sure to remove the DOI badge from the `README.md` file and the DOI field
 `CITATION.cff` file (which are both currently linked to the template repository's Zenodo archive). To set up
@@ -87,19 +88,19 @@ replacement markdown string to use in your new package).
 In the `pyproject.toml` file, you will need to update the following fields:
 
 1. Under `[project]`:
-    - `name = "ETL-MEDS"`: Update `ETL-MEDS` to the name of your package (e.g., `MIMIC-IV-MEDS`)
-    - `authors = [...]`: Update the author information to your name and email.
-    - `description = "..."`: Update the description to a brief description of your dataset.
-    - `dependencies = [...]`: Update the dependencies to include the necessary packages for your ETL pipeline
-        (if any additional packages are needed).
+   - `name = "ETL-MEDS"`: Update `ETL-MEDS` to the name of your package (e.g., `MIMIC-IV-MEDS`)
+   - `authors = [...]`: Update the author information to your name and email.
+   - `description = "..."`: Update the description to a brief description of your dataset.
+   - `dependencies = [...]`: Update the dependencies to include the necessary packages for your ETL pipeline
+     (if any additional packages are needed).
 2. Under `[project.scripts]`
-    - `MEDS_extract-sample_dataset = "ETL_MEDS.__main__:main"`: Update `MEDS_extract-sample_dataset` to the
-        name of your command-line pipeline (e.g., `MIMIC-IV_extract`) and update `ETL_MEDS` to the name of your
-        package that you would import in python (e.g., `MIMIC_IV_MEDS`). This will be the same as the directory
-        name between `src` and your actual code.
+   - `MEDS_extract-sample_dataset = "ETL_MEDS.__main__:main"`: Update `MEDS_extract-sample_dataset` to the
+     name of your command-line pipeline (e.g., `MIMIC-IV_extract`) and update `ETL_MEDS` to the name of your
+     package that you would import in python (e.g., `MIMIC_IV_MEDS`). This will be the same as the directory
+     name between `src` and your actual code.
 3. Under `[project.urls]`
-    - `Homepage = "..."` Update the homepage to the URL of your GitHub repository.
-    - `Issues = "..."` Update the issues URL to the URL of your GitHub repository issues page.
+   - `Homepage = "..."` Update the homepage to the URL of your GitHub repository.
+   - `Issues = "..."` Update the issues URL to the URL of your GitHub repository issues page.
 
 #### `src/.../__init__.py`
 
@@ -114,7 +115,7 @@ about the dataset and to provide links from which the dataset can be downloaded.
 1. `dataset_name`: The name of the dataset.
 2. `raw_dataset_version`: The version this version of your pipeline is designed to work with.
 3. `urls`: This block contains the URLs from which the dataset can be downloaded. This field requires
-    additional commentary, explored below.
+   additional commentary, explored below.
 
 ##### URLs:
 
@@ -192,7 +193,7 @@ If you do have a demo dataset, ensure that it is included in your `dataset.yaml`
 `e2e_demo_test.py` file as follows:
 
 1. Update the command in the `command_parts` variable to match the command you set in your `pyproject.toml`
-    file for the executable for your pipeline (e.g., `MIMIC-IV_extract`).
+   file for the executable for your pipeline (e.g., `MIMIC-IV_extract`).
 2. Remove the `pytest.mark.skip` decorator from the test function so that it runs successfully!
 
 The test file (and the internal doctests, which can help unittest your `pre-MEDS` file) can then be run via
@@ -202,16 +203,16 @@ code coverage will be tracked via CodeCov.
 
 #### `.pre-commit-config`
 
-This will run pre-commit hooks on GitHub when you're creating your ETL. To locally install this, you can install the optional dependencies:
+This will run pre-commit hooks on GitHub when you're creating your ETL. To locally install this, you can install the dev dependencies:
 
-```
- pip install ".[dev]"
+```bash
+uv sync --group dev
 ```
 
 Then, run:
 
-```
-pre-commit run --all-files
+```bash
+uv run pre-commit run --all-files
 ```
 
 This will automatically reformat your files (if possible) to conform with the linting requirements.
@@ -220,6 +221,7 @@ This will automatically reformat your files (if possible) to conform with the li
 > Currently we need pre-commit\<4 to run the `docformatter` hook.
 
 #### `CITATION.cff`
+
 This file ensures your resulting ETL can be properly cited. You should update the entire CFF file to reflect
 your ETL; you can use the [cffinit](https://citation-file-format.github.io/cff-initializer-javascript/#/)
 utility to help you.

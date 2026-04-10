@@ -20,11 +20,13 @@ dependencies = [
   "meds-transforms~=0.2", "requests", "beautifulsoup4", "hydra-core"
 ]
 
+[dependency-groups]
+dev = ["pre-commit<4"]
+tests = ["pytest", "pytest-cov"]
+
 [tool.setuptools_scm]
 
 [project.optional-dependencies]
-dev = ["pre-commit<4"]
-tests = ["pytest", "pytest-cov"]
 local_parallelism = ["hydra-joblib-launcher"]
 slurm_parallelism = ["hydra-submitit-launcher"]
 
