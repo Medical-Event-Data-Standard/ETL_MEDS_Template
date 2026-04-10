@@ -20,8 +20,10 @@ pip install PACKAGE_NAME # you can do this locally or via PyPI
 COMMAND_NAME root_output_dir=$ROOT_OUTPUT_DIR
 ```
 
-See the [MIMIC-IV MEDS Extraction ETL](https://github.com/Medical-Event-Data-Standard/MIMIC_IV_MEDS) for an end
-to end example!
+See the [MIMIC-IV MEDS Extraction ETL](https://github.com/Medical-Event-Data-Standard/MIMIC_IV_MEDS) for a
+real-world example, or the
+[MEDS-Extract example](https://github.com/mmcdermott/MEDS_extract/tree/main/example) for a small synthetic
+dataset you can run end-to-end to understand the extraction pipeline before customizing this template.
 
 ## How to use this repository
 
