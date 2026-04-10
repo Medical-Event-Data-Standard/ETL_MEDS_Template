@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
 import logging
-import os
 from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig
 
-from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG, RUNNER_CFG
+from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG
 from . import __version__ as PKG_VERSION
 from . import dataset_info
 from .commands import run_command
@@ -47,34 +46,21 @@ def main(cfg: DictConfig):
     else:
         pre_MEDS_dir = raw_input_dir
 
-    # Step 2: MEDS Cohort Creation
-    # First we need to set some environment variables
+    # Step 2: MEDS Cohort Creation via MEDS_transform-pipeline
     command_parts = [
         f"DATASET_NAME={dataset_info.dataset_name}",
         f"DATASET_VERSION={dataset_info.raw_dataset_version}:{PKG_VERSION}",
         f"EVENT_CONVERSION_CONFIG_FP={str(EVENT_CFG.resolve())}",
         f"PRE_MEDS_DIR={str(pre_MEDS_dir.resolve())}",
         f"MEDS_COHORT_DIR={str(MEDS_cohort_dir.resolve())}",
+        "MEDS_transform-pipeline",
+        str(ETL_CFG.resolve()),
     ]
 
-    # Then we construct the rest of the command
-    command_parts.extend(
-        [
-            "MEDS_transform-runner",
-            f"--config-path={str(RUNNER_CFG.parent.resolve())}",
-            f"--config-name={RUNNER_CFG.stem}",
-            f"pipeline_config_fp={str(ETL_CFG.resolve())}",
-        ]
-    )
-    if int(os.getenv("N_WORKERS", 1)) <= 1:
-        logger.info("Running in serial mode as N_WORKERS is not set.")
-        command_parts.append("~parallelize")
-
     if stage_runner_fp:
-        command_parts.append(f"stage_runner_fp={stage_runner_fp}")
+        command_parts.append(f"--stage_runner_fp={stage_runner_fp}")
 
-    command_parts.append("'hydra.searchpath=[pkg://MEDS_transforms.configs]'")
-    run_command(command_parts, cfg)
+    run_command(command_parts)
 
 
 if __name__ == "__main__":
