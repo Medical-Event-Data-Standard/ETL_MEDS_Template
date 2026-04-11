@@ -3,15 +3,16 @@
 [![codecov](https://codecov.io/gh/Medical-Event-Data-Standard/ETL_MEDS_Template/graph/badge.svg?token=RW6JXHNT0W)](https://codecov.io/gh/Medical-Event-Data-Standard/ETL_MEDS_Template)
 [![tests](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yml)
 [![code-quality](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml)
-![python](https://img.shields.io/badge/-Python_3.11-blue?logo=python&logoColor=white)
+![python](https://img.shields.io/badge/-Python_3.12-blue?logo=python&logoColor=white)
 [![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template#license)
 [![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/pulls)
 [![contributors](https://img.shields.io/github/contributors/Medical-Event-Data-Standard/ETL_MEDS_Template.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/graphs/contributors)
 [![DOI](https://zenodo.org/badge/901560475.svg)](https://doi.org/10.5281/zenodo.17536399)
 
-This is a template repository for a MEDS-Transforms powered extraction pipeline for a custom dataset. Once you
-have customized the repository to your dataset (see instructions below), you will be able to run your
-extraction pipeline with a few simple command-line commands, such as:
+This is a template repository for a [MEDS-Extract](https://github.com/mmcdermott/MEDS_extract) powered
+extraction pipeline for a custom dataset. Once you have customized the repository to your dataset (see
+instructions below), you will be able to run your extraction pipeline with a few simple command-line
+commands, such as:
 
 ```bash
 pip install PACKAGE_NAME # you can do this locally or via PyPI
@@ -19,8 +20,10 @@ pip install PACKAGE_NAME # you can do this locally or via PyPI
 COMMAND_NAME root_output_dir=$ROOT_OUTPUT_DIR
 ```
 
-See the [MIMIC-IV MEDS Extraction ETL](https://github.com/Medical-Event-Data-Standard/MIMIC_IV_MEDS) for an end
-to end example!
+See the [MIMIC-IV MEDS Extraction ETL](https://github.com/Medical-Event-Data-Standard/MIMIC_IV_MEDS) for a
+real-world example, or the
+[MEDS-Extract example](https://github.com/mmcdermott/MEDS_extract/tree/main/example) for a small synthetic
+dataset you can run end-to-end to understand the extraction pipeline before customizing this template.
 
 ## How to use this repository
 
@@ -160,13 +163,23 @@ dataset for MEDS-Transforms based extraction. Critically, these steps often incl
 3. Converting any offsets into timestamps.
 4. Any other modifications of interest.
 
-See [MEDS-Transforms](TODO) for more documentation on the appropriate construction of the pre-MEDS script.
+See [MEDS-Extract](https://meds-extract.readthedocs.io/) for more documentation on the appropriate
+construction of the pre-MEDS script.
 
 #### `event_configs.yaml`
 
-This file is the configuration file for mapping the rows in your various raw data tables to MEDS events via
-the MEDS-Transforms pipeline. See [MEDS-Transforms](TODO) for more documentation on the format and usage of
-this file.
+This file is the MESSY (MEDS-Extract Specification Syntax YAML) configuration file for mapping the rows in
+your various raw data tables to MEDS events. Event field values like `code` and `time` are written as
+[dftly](https://github.com/mmcdermott/dftly) expressions. Key syntax elements:
+
+- **Column references**: `$column_name` (e.g., `$test_name`)
+- **String interpolation**: `f"PREFIX//{$col1}//{$col2}"` (using `//` as the MEDS code separator)
+- **Type casting / time parsing**: `$timestamp::"%Y-%m-%d %H:%M:%S"` (replaces the old `time_format` key)
+- **Bare words**: literal string values (e.g., `code: MEDS_BIRTH`)
+- **Static events**: `time: null`
+
+See [MEDS-Extract documentation](https://meds-extract.readthedocs.io/) for full details on the MESSY
+format, including `_metadata` blocks, `join` blocks, and `subject_id_expr`.
 
 #### `README.md`
 

@@ -10,14 +10,14 @@ authors = [
 ]
 description = "A template ETL pipeline to extract arbitrary data into the MEDS format."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "meds-transforms~=0.2", "requests", "beautifulsoup4", "hydra-core"
+  "MEDS-extract~=0.6", "requests", "beautifulsoup4"
 ]
 
 [dependency-groups]
