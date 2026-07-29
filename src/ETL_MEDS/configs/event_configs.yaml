@@ -1,5 +1,61 @@
-subject_id_col: patient_id
+# This is the combined MESSY (MEDS-Extract Specification Syntax YAML) file for your dataset. It
+# carries BOTH the `sources:` block read by `meds-extract-download` (staging raw files) AND the
+# event-conversion configuration read by the extraction pipeline. See the MEDS-Extract
+# documentation for full details on both.
+#
+# The sample configuration below is runnable as-is: it extracts the synthetic example dataset
+# shipped with MEDS-Extract (https://github.com/mmcdermott/MEDS_extract/tree/dev/example).
 
+# `sources:` declares where your raw data lives. Buckets (`dataset`, `demo`, ...) are selected at
+# download time via `key=`; `common` is always fetched. Supported backends include `http`,
+# `physionet`, and `fsspec` -- e.g., for credentialed PhysioNet data:
+#
+#   sources:
+#     dataset:
+#       - type: physionet
+#         base_url: https://physionet.org/files/YOUR_DATASET/1.0
+#         username: ${oc.env:PHYSIONET_USERNAME}
+#         password: ${oc.env:PHYSIONET_PASSWORD}
+#
+# Never put literal credentials here; use `${oc.env:...}` interpolations. The pipeline strips
+# `sources:` from logged and copied configs, but the file itself is committed to your repository.
+sources:
+  dataset:
+    - type: http
+      urls:
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/patients.csv
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/stays.csv
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/labs_vitals.csv
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/medications.csv
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/diagnoses.csv
+  demo: # A smaller, open version of the dataset, if one exists (used when `do_demo=True`).
+    - type: http
+      urls:
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/patients.csv
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/stays.csv
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/labs_vitals.csv
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/medications.csv
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/diagnoses.csv
+  common: # Shared resources (e.g., concept maps or code metadata) fetched regardless of `key=`.
+    - type: http
+      urls:
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/lab_descriptions.csv
+        - https://raw.githubusercontent.com/mmcdermott/MEDS_extract/dev/example/raw_data/medication_classes.csv
+
+# `_defaults:` holds fields inherited by every table; `subject_id` is a dftly expression naming
+# how to compute the MEDS subject ID from each table's columns.
+_defaults:
+  subject_id: $patient_id
+
+# Every other top-level key is a raw-data table (its file prefix under the raw input directory),
+# mapping event names to MESSY event blocks. Event field values like `code` and `time` are written
+# as dftly expressions:
+#   - Column references: `$column_name`
+#   - String interpolation: `f"PREFIX//{$col1}//{$col2}"` (`//` is the MEDS code separator). Null
+#     components null-propagate and drop the row; coalesce with `?? 'UNK'` to keep such rows.
+#   - Time parsing: `$timestamp::"%Y-%m-%dT%H:%M:%S"` (strict; errors on unparsable values) or
+#     `$timestamp::?"..."` (lenient; drops-and-counts unparsable rows)
+#   - Bare words are literal strings (e.g., `code: MEDS_BIRTH`); static events use `time: null`
 patients:
   eye_color:
     code: 'f"EYE_COLOR//{$eye_color}"'
@@ -15,15 +71,30 @@ patients:
     time: '$dod::"%Y-%m-%dT%H:%M:%S"'
 
 labs_vitals:
+  # `_table:` holds whole-table modifications: `join:` (below), and `cols:` for derived columns.
+  # Here, labs are keyed by `stay_id`, so we join the `stays` table to recover the subject ID.
+  _table:
+    join:
+      stays:
+        key: stay_id
+        cols: [patient_id]
   lab:
     code: $test_name
     time: '$timestamp::"%Y-%m-%dT%H:%M:%S"'
     numeric_value: $result
+    # `_metadata:` blocks populate `metadata/codes.parquet` from reference tables.
+    _metadata:
+      lab_descriptions:
+        description: description
 
 medications:
   med:
     code: 'f"{$medication_name}//{$dose}"'
     time: '$timestamp::"%Y-%m-%dT%H:%M:%S"'
+    _metadata:
+      medication_classes:
+        _match_on: medication_name
+        description: drug_class
 
 diagnoses:
   dx:

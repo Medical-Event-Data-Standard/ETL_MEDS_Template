@@ -1,6 +1,10 @@
 defaults:
   - _self_
 
+# Metadata about the dataset this ETL extracts; recorded in the output `metadata/dataset.json`.
+dataset_name: sample_dataset
+raw_dataset_version: "1.0"
+
 root_output_dir: ???
 
 raw_input_dir: ${root_output_dir}/raw_input

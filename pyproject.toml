@@ -17,8 +17,13 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "MEDS-extract~=0.6", "requests", "beautifulsoup4"
+  "MEDS-extract[download]>=0.7.0.dev0"
 ]
+
+# TEMPORARY (remove at MEDS-extract 0.7.0 release): resolve MEDS-extract from the dev branch and
+# pin the dependency above to `MEDS-extract[download]~=0.7.0`.
+[tool.uv.sources]
+MEDS-extract = { git = "https://github.com/mmcdermott/MEDS_extract", branch = "dev" }
 
 [dependency-groups]
 dev = ["pre-commit<4"]

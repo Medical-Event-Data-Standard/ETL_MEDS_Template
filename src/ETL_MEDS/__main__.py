@@ -8,9 +8,7 @@ from omegaconf import DictConfig
 
 from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG
 from . import __version__ as PKG_VERSION
-from . import dataset_info
 from .commands import run_command
-from .download import download_data
 
 if HAS_PRE_MEDS:
     from .pre_MEDS import main as pre_MEDS_transform
@@ -27,14 +25,22 @@ def main(cfg: DictConfig):
     MEDS_cohort_dir = Path(cfg.MEDS_cohort_dir)
     stage_runner_fp = cfg.get("stage_runner_fp", None)
 
-    # Step 0: Data downloading
+    # Step 0: Data downloading via meds-extract-download, driven by the `sources:` block of the
+    # MESSY file. `key=` selects the bucket to fetch (`demo` vs. `dataset`); `common` sources are
+    # always fetched.
     if cfg.do_download:  # pragma: no cover
-        if cfg.get("do_demo", False):
-            logger.info("Downloading demo data.")
-            download_data(raw_input_dir, dataset_info, do_demo=True)
-        else:
-            logger.info("Downloading data.")
-            download_data(raw_input_dir, dataset_info)
+        key = "demo" if cfg.get("do_demo", False) else "dataset"
+        logger.info(f"Downloading data (key={key}).")
+        download_command_parts = [
+            "meds-extract-download",
+            f"spec={str(EVENT_CFG.resolve())}",
+            f"raw_input_dir={str(raw_input_dir.resolve())}",
+            f"key={key}",
+            f"hydra.run.dir={cfg.log_dir}/download",
+        ]
+        if cfg.get("do_overwrite", False):
+            download_command_parts.append("do_overwrite=true")
+        run_command(download_command_parts)
     else:  # pragma: no cover
         logger.info("Skipping data download.")
 
@@ -48,8 +54,8 @@ def main(cfg: DictConfig):
 
     # Step 2: MEDS Cohort Creation via MEDS_transform-pipeline
     command_parts = [
-        f"DATASET_NAME={dataset_info.dataset_name}",
-        f"DATASET_VERSION={dataset_info.raw_dataset_version}:{PKG_VERSION}",
+        f"DATASET_NAME={cfg.dataset_name}",
+        f"DATASET_VERSION={cfg.raw_dataset_version}:{PKG_VERSION}",
         f"EVENT_CONVERSION_CONFIG_FP={str(EVENT_CFG.resolve())}",
         f"PRE_MEDS_DIR={str(pre_MEDS_dir.resolve())}",
         f"MEDS_COHORT_DIR={str(MEDS_cohort_dir.resolve())}",

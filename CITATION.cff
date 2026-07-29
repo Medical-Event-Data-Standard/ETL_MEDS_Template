@@ -21,7 +21,7 @@ identifiers:
 repository-code: >-
   https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template
 abstract: >
-  This is a template repository for a MEDS-Transforms
+  This is a template repository for a MEDS-Extract
   powered extraction pipeline for a custom dataset. Once you
   have customized the repository to your dataset (see
   instructions below), you will be able to run your

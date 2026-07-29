@@ -1,7 +1,7 @@
 # MEDS-ETL-Template: Convert your custom dataset to MEDS via MEDS-Extract
 
 [![codecov](https://codecov.io/gh/Medical-Event-Data-Standard/ETL_MEDS_Template/graph/badge.svg?token=RW6JXHNT0W)](https://codecov.io/gh/Medical-Event-Data-Standard/ETL_MEDS_Template)
-[![tests](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yml)
+[![tests](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yaml)
 [![code-quality](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml)
 ![python](https://img.shields.io/badge/-Python_3.12-blue?logo=python&logoColor=white)
 [![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template#license)
@@ -37,9 +37,9 @@ dataset you can run end-to-end to understand the extraction pipeline before cust
 4. Customize the following code points:
    - [`pyproject.toml`](#pyprojecttoml)
    - [`src/.../__init__.py`](#srcinitpy)
-   - [`src/.../dataset.yaml`](#srcdatasetyaml)
+   - [`src/.../configs/main.yaml`](#srcconfigsmainyaml)
    - [`src/.../pre_MEDS.py`](#srcpre_medspy)
-   - [`src/.../event_configs.yaml`](#srcevent_configsyaml)
+   - [`src/.../configs/event_configs.yaml`](#srcconfigsevent_configsyaml)
    - [`README.md`](#readmemd)
    - [`tests/e2e_demo_test.py`](#testse2e_demo_testpy)
    - [`.pre-commit-config`](#pre-commit-config)
@@ -55,8 +55,8 @@ dataset you can run end-to-end to understand the extraction pipeline before cust
    link, go to your repository in CodeCov, click on the "Configuration" tab, click on the "Badges and
    Graphs" option, then copy the markdown link from the top section and paste it in the corresponding line
    of the README, in place of the default link included above.
-4. It will now track the test coverage of your ETL, including running the full pipeline against the linked
-   demo data you provide in `dataset.yaml`.
+4. It will now track the test coverage of your ETL, including running the full pipeline against the demo
+   data you provide in the `demo` bucket of the `sources:` block in `event_configs.yaml`.
 
 #### PyPI
 
@@ -110,48 +110,17 @@ In the `pyproject.toml` file, you will need to update the following fields:
 In this file, you simply need to update the `__package_name__ = "ETL_MEDS"` line to refer not to `ETL_MEDS`
 but to your new package import name (e.g., `MIMIC_IV_MEDS`)
 
-#### `src/.../dataset.yaml`
+#### `src/.../configs/main.yaml`
 
-In this file, you can add details about the dataset you are working with. This will be used to record metadata
-about the dataset and to provide links from which the dataset can be downloaded. You'll need to modify:
+In this file, update the dataset metadata that will be recorded in the extracted output's
+`metadata/dataset.json`:
 
 1. `dataset_name`: The name of the dataset.
-2. `raw_dataset_version`: The version this version of your pipeline is designed to work with.
-3. `urls`: This block contains the URLs from which the dataset can be downloaded. This field requires
-   additional commentary, explored below.
+2. `raw_dataset_version`: The version of the raw dataset this version of your pipeline is designed to work
+   with.
 
-##### URLs:
-
-This field is an object and contains three sub-keys:
-
-1. `dataset`: The URLs for the full dataset.
-2. `demo`: The URLs for a smaller, open, demo version of the dataset.
-3. `common`: The URLs for shared metadata files or other shared resources.
-
-Each of these sub-keys should be a list of either strings (plain URLs) or dictionaries containing the URL (in
-the key `url`) and username and password authentication information (in the keys `username` and `password`).
-Note that we _strongly_ recommend that you _do not_ include your username and password in the raw file.
-Instead, leverage the OmegaConf resolvers to reference external environment variables or other secure methods
-of storing this information. In the example in this repository, we include one URL with the following
-configuration:
-
-```yaml
-  - url: EXAMPLE_CONTROLLED_URL
-    username: ${oc.env:DATASET_DOWNLOAD_USERNAME}
-    password: ${oc.env:DATASET_DOWNLOAD_PASSWORD}
-```
-
-which would resolve to fill in the `username` and `password` from the environment variables
-`DATASET_DOWNLOAD_USERNAME` and `DATASET_DOWNLOAD_PASSWORD`, respectively.
-
-###### What if my dataset doesn't support direct download/this style of downloading?
-
-That's no problem! You can simply turn off downloading entirely by setting `do_download=False` in the
-`configs/main.yaml` or on the command line when you run the pipeline and ensure that your data files are
-manually downloaded and placed in the appropriate directory (the `raw_input_dir` in the `configs/main.yaml`).
-If there is a technical issue with downloading the data through the format supported so far, you can also file
-a [GitHub Issue](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/issues) outlining your issue and we can
-attempt to expand the supported libraries to cover your use case!
+Where your raw data is downloaded from is configured separately, in the `sources:` block of
+[`event_configs.yaml`](#srcconfigsevent_configsyaml).
 
 #### `pre_MEDS.py`
 
@@ -159,27 +128,84 @@ This script should be generally modified to include any "pre-MEDS" steps that ar
 dataset for MEDS-Transforms based extraction. Critically, these steps often include:
 
 1. De-compressing files or otherwise preparing the raw data for extraction at a technical level.
-2. Joining tables together so that all relevant rows include the unifying `subject_id`.
+2. Joining tables together so that all relevant rows include the unifying `subject_id` (though simple joins
+   can also be expressed directly in `event_configs.yaml` via `_table.join` blocks).
 3. Converting any offsets into timestamps.
 4. Any other modifications of interest.
+
+The sample implementation simply copies the raw files through unchanged (so the sample pipeline is runnable
+end-to-end); replace it with your dataset's real pre-MEDS logic, or **delete the file entirely** if your
+dataset needs no pre-MEDS wrangling — the pipeline will then run extraction directly against the raw input
+directory.
 
 See [MEDS-Extract](https://meds-extract.readthedocs.io/) for more documentation on the appropriate
 construction of the pre-MEDS script.
 
-#### `event_configs.yaml`
+#### `src/.../configs/event_configs.yaml`
 
-This file is the MESSY (MEDS-Extract Specification Syntax YAML) configuration file for mapping the rows in
-your various raw data tables to MEDS events. Event field values like `code` and `time` are written as
-[dftly](https://github.com/mmcdermott/dftly) expressions. Key syntax elements:
+This file is the combined MESSY (MEDS-Extract Specification Syntax YAML) configuration file for your
+dataset. It carries two things: a `sources:` block declaring where your raw data can be downloaded from, and
+the event-conversion configuration mapping rows of your raw data tables to MEDS events.
+
+##### The `sources:` block
+
+Raw data downloading is handled by MEDS-Extract's `meds-extract-download` CLI (which the pipeline command
+invokes for you when `do_download=True`), driven by the `sources:` block of this file. The block contains
+named buckets of sources:
+
+1. `dataset`: The sources for the full dataset.
+2. `demo`: The sources for a smaller, open, demo version of the dataset (used when `do_demo=True`).
+3. `common`: Shared metadata files or other shared resources, fetched regardless of which bucket is
+   selected.
+
+Each bucket is a list of source definitions with a `type:` of `http` (explicit URL lists), `physionet` (any
+PhysioNet release, driven by its `SHA256SUMS.txt`, with authentication support), or `fsspec` (local or
+cloud mirrors of pre-downloaded data). All backends support `include:`/`exclude:` filename globs. For
+example, for a credentialed PhysioNet dataset:
+
+```yaml
+sources:
+  dataset:
+    - type: physionet
+      base_url: https://physionet.org/files/YOUR_DATASET/1.0
+      username: ${oc.env:PHYSIONET_USERNAME}
+      password: ${oc.env:PHYSIONET_PASSWORD}
+```
+
+We _strongly_ recommend that you _do not_ include your username and password literally in the file.
+Instead, use `${oc.env:...}` OmegaConf resolvers as above to reference environment variables. MEDS-Extract
+strips the `sources:` block from all logged and output-directory copies of the config, so credentials
+referenced this way never land in logs or shared outputs.
+
+If your dataset cannot be downloaded automatically at all, remove the `sources:` block, set
+`do_download=False` (in `configs/main.yaml` or on the command line), and place your raw data files manually
+in the `raw_input_dir`.
+
+##### Event conversion
+
+Event field values like `code` and `time` are written as [dftly](https://github.com/mmcdermott/dftly)
+expressions. Key syntax elements:
 
 - **Column references**: `$column_name` (e.g., `$test_name`)
-- **String interpolation**: `f"PREFIX//{$col1}//{$col2}"` (using `//` as the MEDS code separator)
-- **Type casting / time parsing**: `$timestamp::"%Y-%m-%d %H:%M:%S"` (replaces the old `time_format` key)
+- **String interpolation**: `f"PREFIX//{$col1}//{$col2}"` (using `//` as the MEDS code separator). Null
+  components null-propagate, dropping the row; write `f"{$col ?? 'UNK'}//..."` to fill nulls and keep the
+  row instead.
+- **Time parsing**: `$timestamp::"%Y-%m-%d %H:%M:%S"` parses strictly (unparsable non-null values are an
+  error); `$timestamp::?"%Y-%m-%d %H:%M:%S"` parses leniently (rows that parse under no format are dropped,
+  with a per-event WARNING and count in the logs).
 - **Bare words**: literal string values (e.g., `code: MEDS_BIRTH`)
 - **Static events**: `time: null`
+- **Inherited fields**: the top-level `_defaults:` block sets fields inherited by every table — most
+  importantly `subject_id`, a dftly expression computing the MEDS subject ID (omit it entirely if your
+  tables literally have a `subject_id` column).
+- **Whole-table modifications**: a per-table `_table:` block holds `cols:` (derived columns, which may
+  reference earlier entries) and `join:` (joining another table in to, e.g., recover the subject ID, as the
+  sample's `labs_vitals` table demonstrates).
+- **Code metadata**: per-event `_metadata:` blocks populate the extracted `metadata/codes.parquet` from
+  reference tables (see the sample's `lab_descriptions` and `medication_classes` usages).
 
-See [MEDS-Extract documentation](https://meds-extract.readthedocs.io/) for full details on the MESSY
-format, including `_metadata` blocks, `join` blocks, and `subject_id_expr`.
+See the [MEDS-Extract documentation](https://meds-extract.readthedocs.io/) for full details on the MESSY
+format.
 
 #### `README.md`
 
@@ -189,7 +215,7 @@ Insert badges like below:
 [![PyPI - Version](https://img.shields.io/pypi/v/PACKAGE_NAME)](https://pypi.org/project/PACKAGE_NAME/)
 [![Documentation Status](https://readthedocs.org/projects/REPO_NAME/badge/?version=latest)](https://REPO_NAME.readthedocs.io/en/stable/?badge=stable)
 [![codecov](https://codecov.io/gh/Medical-Event-Data-Standard/REPO_NAME/graph/badge.svg?token=REPO_TOKEN)](https://codecov.io/gh/Medical-Event-Data-Standard/REPO_NAME)
-[![tests](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/tests.yml)
+[![tests](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/tests.yaml)
 [![code-quality](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/code-quality-main.yaml)
 ![python](https://img.shields.io/badge/-Python_3.12-blue?logo=python&logoColor=white)
 [![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/Medical-Event-Data-Standard/REPO_NAME#license)
@@ -199,15 +225,16 @@ Insert badges like below:
 
 #### `tests/e2e_demo_test.py`
 
-If your dataset does not have an open demo version, you can remove this file, as there is no way to set up
-automated testing of the end-to-end pipeline in a safe manner without a demo dataset.
+This test runs the full sample pipeline end-to-end — including downloading the (tiny) sample raw data —
+and is enabled by default, so the template continuously verifies itself in CI.
 
-If you do have a demo dataset, ensure that it is included in your `dataset.yaml` file and update the
-`e2e_demo_test.py` file as follows:
+If your dataset has an open demo version, ensure it is included in the `demo` bucket of your `sources:`
+block and update the command in the `command_parts` variable to match the command you set in your
+`pyproject.toml` file for the executable for your pipeline (e.g., `MIMIC-IV_extract`).
 
-1. Update the command in the `command_parts` variable to match the command you set in your `pyproject.toml`
-   file for the executable for your pipeline (e.g., `MIMIC-IV_extract`).
-2. Remove the `pytest.mark.skip` decorator from the test function so that it runs successfully!
+If your dataset does not have an open demo version, re-apply the `pytest.mark.skip` decorator (left
+commented in the file) or remove the file, as there is no way to set up automated testing of the end-to-end
+pipeline in a safe manner without a demo dataset.
 
 The test file (and the internal doctests, which can help unittest your `pre-MEDS` file) can then be run via
 `pytest --doctest-modules -s` from the root directory to ensure correctness of your pipeline. These tests will

@@ -2,10 +2,12 @@ import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-import pytest
 
-
-@pytest.mark.skip(reason="If you have a demo dataset, re-enable this test in your downstream repositories.")
+# This test runs the full sample pipeline, including downloading the (tiny) sample raw data over
+# the network. If your dataset has no open demo version, re-apply the skip mark below in your
+# downstream repository (restoring the `import pytest` as well) -- there is no way to safely test
+# the end-to-end pipeline without a demo dataset.
+# @pytest.mark.skip(reason="This dataset has no demo version, so the e2e pipeline cannot be tested.")
 def test_e2e():
     with TemporaryDirectory() as temp_dir:
 
