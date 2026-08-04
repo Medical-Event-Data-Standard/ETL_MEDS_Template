@@ -1,0 +1,32 @@
+# This workflow finds which files were changed, prints them,
+# and runs `pre-commit` on those files.
+
+name: Code Quality PR
+
+on:
+  pull_request:
+    branches: [main, "release/*", "dev"]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup package
+        uses: ./.github/actions/setup
+        with:
+          python-version: "3.12"
+
+      - name: Find modified files
+        id: file_changes
+        uses: tj-actions/changed-files@v46.0.5
+
+      - name: List modified files
+        run: echo '${{ steps.file_changes.outputs.all_changed_files }}'
+
+      - name: Run pre-commits
+        run: >
+          uv run pre-commit run --show-diff-on-failure
+          --files ${{ steps.file_changes.outputs.all_changed_files}}

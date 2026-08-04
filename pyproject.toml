@@ -1,38 +1,19 @@
-[build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "ETL-MEDS"
-dynamic = ["version"]
-authors = [
-  { name="Matthew McDermott", email="mattmcdermott8@gmail.com" },
-]
-description = "A template ETL pipeline to extract arbitrary data into the MEDS format."
-readme = "README.md"
-requires-python = ">=3.12"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-dependencies = [
-  "MEDS-extract~=0.6", "requests", "beautifulsoup4"
-]
+name = "ETL-MEDS-Template"
+version = "0.0.0"
+description = "Copier template for config-only MEDS-Extract dataset ETL packages (development harness; not published)."
+requires-python = ">=3.11"
 
 [dependency-groups]
-dev = ["pre-commit<4"]
-tests = ["pytest", "pytest-cov"]
+dev = [
+  "pre-commit<4",
+  "copier>=9.4",
+  "pytest",
+  "pytest-copie",
+]
 
-[tool.setuptools_scm]
+[tool.uv]
+package = false
 
-[project.optional-dependencies]
-local_parallelism = ["hydra-joblib-launcher"]
-slurm_parallelism = ["hydra-submitit-launcher"]
-
-[project.scripts]
-MEDS_extract-sample_dataset = "ETL_MEDS.__main__:main"
-
-[project.urls]
-Homepage = "https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template"
-Issues = "https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/issues"
+[tool.pytest.ini_options]
+addopts = ["--color=yes"]

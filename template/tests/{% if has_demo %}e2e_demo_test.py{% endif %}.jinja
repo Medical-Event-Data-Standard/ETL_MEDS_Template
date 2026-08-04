@@ -1,0 +1,37 @@
+"""End-to-end test of the full ETL against the dataset's open demo release.
+
+Downloads the ``demo`` sources bucket over the network and runs the complete extraction pipeline
+via ``meds-extract-run``, then checks the MEDS output layout. Keep the demo release small enough
+for CI.
+"""
+
+import subprocess
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+
+def test_e2e_demo():
+    with TemporaryDirectory() as temp_dir:
+        output_dir = Path(temp_dir) / "MEDS_cohort"
+
+        result = subprocess.run(
+            [
+                "meds-extract-run",
+                "spec={{ dataset_name }}",
+                f"output_dir={output_dir}",
+                "download_key=demo",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, (
+            f"meds-extract-run failed with exit code {result.returncode}.\n"
+            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        )
+
+        data_files = list((output_dir / "data").rglob("*.parquet"))
+        assert data_files, f"No MEDS data parquets found under {output_dir / 'data'}"
+
+        metadata_dir = output_dir / "metadata"
+        for expected in ("dataset.json", "codes.parquet", "subject_splits.parquet"):
+            assert (metadata_dir / expected).exists(), f"Missing {expected} in {metadata_dir}"
