@@ -1,0 +1,23 @@
+# Same as `code-quality-pr.yaml` but triggered on commit to main branch
+# and runs on all files (instead of only the changed ones)
+
+name: Code Quality Main
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup package
+        uses: ./.github/actions/setup
+        with:
+          python-version: "3.12"
+
+      - name: Run pre-commits
+        run: uv run pre-commit run --all-files --show-diff-on-failure

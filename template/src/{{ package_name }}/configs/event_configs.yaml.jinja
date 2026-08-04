@@ -1,0 +1,54 @@
+# The MESSY (MEDS-Extract Specification Syntax YAML) file for {{ dataset_name }}.
+#
+# This ONE file defines the whole ETL: where the raw data lives (`sources:`) and how its rows
+# become MEDS events (the per-table sections below). It is registered with MEDS-Extract's generic
+# runner via the `MEDS_extract.pipelines` entry point in pyproject.toml, so once this package is
+# installed the whole pipeline is:
+#
+#     meds-extract-run spec={{ dataset_name }} output_dir=/path/to/output
+#
+# See https://github.com/mmcdermott/MEDS_extract for full documentation of the MESSY format.
+
+# `sources:` declares where the raw data can be downloaded from. Buckets (`dataset`, `demo`, ...)
+# are selected at run time via `download_key=`; a `common` bucket, if present, is always fetched.
+# Backends: `http` (explicit URL lists), `physionet` (any PhysioNet release, with authentication),
+# and `fsspec` (local or cloud mirrors). Never put literal credentials here — use `${oc.env:...}`
+# interpolations; MEDS-Extract strips `sources:` from logged and output-tree config copies.
+sources:
+  # TODO: the raw {{ dataset_name }} release version this ETL targets. It is stamped into the
+  # output's provenance metadata and may be interpolated into URLs (`${sources.dataset_version}`).
+  dataset_version: "1.0"
+  dataset:
+    # TODO: replace with the real source(s) of the raw data, e.g. for a PhysioNet release:
+    #   - type: physionet
+    #     base_url: https://physionet.org/files/YOUR_DATASET/${sources.dataset_version}
+    #     username: ${oc.env:PHYSIONET_USERNAME}
+    #     password: ${oc.env:PHYSIONET_PASSWORD}
+    - type: http
+      urls:
+        - https://example.com/{{ dataset_name }}/example_table.csv
+{%- if has_demo %}
+  demo:
+    # TODO: the openly downloadable demo release (used by `download_key=demo` and the e2e CI test).
+    - type: http
+      urls:
+        - https://example.com/{{ dataset_name }}-demo/example_table.csv
+{%- endif %}
+
+# Fields inherited by every table. `subject_id` is a dftly expression computing the MEDS subject
+# ID; omit this block entirely if your tables literally have a `subject_id` column.
+_defaults:
+  subject_id: $subject_id
+
+# TODO: one top-level section per raw-data table (keyed by its file prefix under the raw input
+# directory), mapping event names to MESSY event blocks. Replace the placeholder below. Field
+# values are dftly expressions: `$column`, `f"PREFIX//{$col}"` interpolation (null components drop
+# the row; coalesce with `?? 'UNK'` to keep it), strict `$ts::"%Y-%m-%d %H:%M:%S"` or lenient
+# `$ts::?"..."` time parsing, bare literals (`code: MEDS_BIRTH`), and `time: null` for static
+# events. Per-table `_table:` blocks support derived columns (`cols:`) and joins (`join:`);
+# per-event `_metadata:` blocks populate `metadata/codes.parquet` from reference tables.
+example_table:
+  example_event:
+    code: 'f"EXAMPLE//{$category}"'
+    time: '$timestamp::"%Y-%m-%dT%H:%M:%S"'
+    numeric_value: $value

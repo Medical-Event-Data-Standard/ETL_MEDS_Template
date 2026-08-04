@@ -1,4 +1,5 @@
-name: Publish Python distribution to PyPI and TestPyPI
+{% raw -%}
+name: Publish Python distribution to PyPI
 
 on: push
 
@@ -7,17 +8,10 @@ jobs:
     name: Build distribution
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: ["3.12"]
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          fetch-depth: 0 # setuptools-scm needs tag history to compute the version
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -41,7 +35,9 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/MEDS-transforms # Replace <package-name> with your PyPI project name
+{%- endraw %}
+      url: https://pypi.org/p/{{ pypi_name }}
+{%- raw %}
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
 
@@ -98,3 +94,4 @@ jobs:
           gh release upload
           '${{ github.ref_name }}' dist/**
           --repo '${{ github.repository }}'
+{% endraw -%}

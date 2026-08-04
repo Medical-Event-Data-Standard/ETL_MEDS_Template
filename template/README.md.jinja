@@ -1,0 +1,66 @@
+# {{ dataset_name }} MEDS Extraction ETL
+
+[![PyPI - Version](https://img.shields.io/pypi/v/{{ pypi_name }})](https://pypi.org/project/{{ pypi_name }}/)
+[![tests](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/tests.yaml/badge.svg)](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/tests.yaml)
+[![code-quality](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/code-quality-main.yaml)
+![python](https://img.shields.io/badge/-Python_3.11+-blue?logo=python&logoColor=white)
+[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/{{ github_org }}/{{ github_repo }}#license)
+
+{{ package_description }} Built on [MEDS-Extract](https://github.com/mmcdermott/MEDS_extract).
+
+## Usage
+
+```bash
+pip install {{ pypi_name }}
+meds-extract-run spec={{ dataset_name }} output_dir=/path/to/output
+```
+
+{% if has_demo -%}
+To run against the smaller open demo release instead, add `download_key=demo`.
+
+{% endif -%}
+Raw data is downloaded automatically per the `sources:` block of the packaged configuration; set any
+required credentials as environment variables (see below). To run against pre-staged raw data
+instead, pass `download_key=null input_dir=/path/to/raw/data`.
+
+The output directory will contain the extracted MEDS dataset (`data/` and `metadata/`, per the
+[MEDS standard](https://medical-event-data-standard.github.io/)), with dataset name and version
+provenance stamped in `metadata/dataset.json` automatically.
+
+<!-- TODO: document dataset access requirements (e.g. credential setup, DUAs) and any
+     dataset-specific notes here. -->
+
+## How this package works
+
+This is a *config-only* ETL package: its entire substance is
+[`src/{{ package_name }}/configs/event_configs.yaml`](src/{{ package_name }}/configs/event_configs.yaml),
+a MESSY (MEDS-Extract Specification Syntax YAML) file declaring where the raw data lives
+(`sources:`) and how its rows map to MEDS events. The `MEDS_extract.pipelines` entry point in
+`pyproject.toml` registers that file under the name `{{ dataset_name }}`, and MEDS-Extract's
+generic runner (`meds-extract-run`) does everything else: staged download, the canonical extraction
+pipeline, and provenance stamping. See the
+[MEDS-Extract documentation](https://github.com/mmcdermott/MEDS_extract) for the MESSY format and
+runner details.
+
+## Development
+
+```bash
+uv sync --group dev --group tests
+uv run pre-commit install
+uv run pytest tests/ -v
+```
+
+The test suite validates offline that the packaged MESSY file is registered and parses{% if has_demo %}, and
+runs the full pipeline end-to-end against the demo release{% endif %}.
+
+To publish: set up a [PyPI trusted publisher](https://docs.pypi.org/trusted-publishers/) for this
+repository (see [the template's
+instructions](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template#pypi) for a
+walkthrough), then push a version tag (e.g. `git tag 0.1.0 && git push origin 0.1.0`) — the release
+workflow builds, publishes to PyPI, and creates a GitHub release. Optionally archive releases on
+[Zenodo](https://docs.github.com/en/repositories/archiving-a-github-repository/referencing-and-citing-content)
+for a citable DOI, and update `CITATION.cff` accordingly.
+
+This repository was generated from the
+[ETL_MEDS_Template](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template) copier
+template; run `uvx copier update` (with a clean git tree) to pull in template improvements.

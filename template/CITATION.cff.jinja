@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+title: "{{ pypi_name }}"
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+type: software
+authors:
+  - name: "{{ author_name }}"
+    email: "{{ author_email }}"
+repository-code: "https://github.com/{{ github_org }}/{{ github_repo }}"
+abstract: >
+  {{ package_description }} Built on MEDS-Extract; the package registers a MESSY
+  configuration file that maps the raw {{ dataset_name }} data to the MEDS format.
+license: MIT
