@@ -16,8 +16,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+# `~=0.6` means `>=0.6, <1.0`, not `>=0.6, <0.7` -- the compatible-release operator only
+# pins to the last component given, so a bare `~=0.6` admits every 0.x. That would let the
+# imminent MEDS-Extract 0.7.0 install here unvetted, and 0.7 is a breaking redesign (MESSY
+# configs, renamed stages, a new runner CLI). Capped explicitly rather than with `~=0.6.0`
+# so the intent is legible at a glance; raise it deliberately when the template is migrated.
 dependencies = [
-  "MEDS-extract~=0.6", "requests", "beautifulsoup4"
+  "MEDS-extract>=0.6,<0.7", "requests", "beautifulsoup4"
 ]
 
 [dependency-groups]

@@ -287,7 +287,7 @@ requires-dist = [
     { name = "beautifulsoup4" },
     { name = "hydra-joblib-launcher", marker = "extra == 'local-parallelism'" },
     { name = "hydra-submitit-launcher", marker = "extra == 'slurm-parallelism'" },
-    { name = "meds-extract", specifier = "~=0.6" },
+    { name = "meds-extract", specifier = ">=0.6,<0.7" },
     { name = "requests" },
 ]
 provides-extras = ["local-parallelism", "slurm-parallelism"]
