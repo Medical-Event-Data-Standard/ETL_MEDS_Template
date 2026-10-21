@@ -10,7 +10,7 @@
 # See https://github.com/mmcdermott/MEDS_extract for full documentation of the MESSY format.
 
 # `sources:` declares where the raw data can be downloaded from. Buckets (`dataset`, `demo`, ...)
-# are selected at run time via `download_key=`; a `common` bucket, if present, is always fetched.
+# are selected at run time via `dataset_key=`; a `common` bucket, if present, is always fetched.
 # Backends: `http` (explicit URL lists), `physionet` (any PhysioNet release, with authentication),
 # and `fsspec` (local or cloud mirrors). Never put literal credentials here — use `${oc.env:...}`
 # interpolations; MEDS-Extract strips `sources:` from logged and output-tree config copies.
@@ -29,7 +29,7 @@ sources:
         - https://example.com/{{ dataset_name }}/example_table.csv
 {%- if has_demo %}
   demo:
-    # TODO: the openly downloadable demo release (used by `download_key=demo` and the e2e CI test).
+    # TODO: the openly downloadable demo release (used by `dataset_key=demo` and the e2e CI test).
     - type: http
       urls:
         - https://example.com/{{ dataset_name }}-demo/example_table.csv
