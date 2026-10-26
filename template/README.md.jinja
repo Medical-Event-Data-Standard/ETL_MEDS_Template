@@ -3,7 +3,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/{{ pypi_name }})](https://pypi.org/project/{{ pypi_name }}/)
 [![tests](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/tests.yaml/badge.svg)](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/tests.yaml)
 [![code-quality](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/code-quality-main.yaml)
-![python](https://img.shields.io/badge/-Python_3.11+-blue?logo=python&logoColor=white)
+![python](https://img.shields.io/badge/-Python_3.11--3.13-blue?logo=python&logoColor=white)
 [![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/{{ github_org }}/{{ github_repo }}#license)
 
 {{ package_description }} Built on [MEDS-Extract](https://github.com/mmcdermott/MEDS_extract).
@@ -16,12 +16,12 @@ meds-extract-run spec={{ dataset_name }} output_dir=/path/to/output
 ```
 
 {% if has_demo -%}
-To run against the smaller open demo release instead, add `download_key=demo`.
+To run against the smaller open demo release instead, add `dataset_key=demo`.
 
 {% endif -%}
 Raw data is downloaded automatically per the `sources:` block of the packaged configuration; set any
 required credentials as environment variables (see below). To run against pre-staged raw data
-instead, pass `download_key=null input_dir=/path/to/raw/data`.
+instead, pass `do_download=false input_dir=/path/to/raw/data`.
 
 The output directory will contain the extracted MEDS dataset (`data/` and `metadata/`, per the
 [MEDS standard](https://medical-event-data-standard.github.io/)), with dataset name and version

@@ -10,20 +10,20 @@ authors = [
 ]
 description = "{{ package_description }}"
 readme = "README.md"
-requires-python = ">=3.11"
+# Mirrors MEDS-Extract 0.7's own interpreter range; a looser floor/ceiling here would admit
+# interpreters it cannot be installed on.
+requires-python = ">=3.11.4,<3.14"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+# Capped explicitly below the next minor: MEDS-Extract 0.x minors are breaking (MESSY syntax, runner
+# CLI), so raise this deliberately when migrating. The `[download]` extra provides
+# `meds-extract-download`, which `meds-extract-run` spawns to stage the raw data.
 dependencies = [
-  "MEDS-extract[download]>=0.7.0.dev0",
+  "MEDS-extract[download]>=0.7.0,<0.8",
 ]
-
-# TEMPORARY (remove once MEDS-extract 0.7.0 is on PyPI, and pin the dependency
-# above to "MEDS-extract[download]~=0.7.0" instead):
-[tool.uv.sources]
-MEDS-extract = { git = "https://github.com/mmcdermott/MEDS_extract", branch = "dev" }
 
 [dependency-groups]
 dev = ["pre-commit<4"]
