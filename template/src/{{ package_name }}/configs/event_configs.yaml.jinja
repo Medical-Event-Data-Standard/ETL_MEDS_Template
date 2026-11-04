@@ -45,7 +45,7 @@ _defaults:
 # values are dftly expressions: `$column`, `f"PREFIX//{$col}"` interpolation (null components drop
 # the row; coalesce with `?? 'UNK'` to keep it), strict `$ts::"%Y-%m-%d %H:%M:%S"` or lenient
 # `$ts::?"..."` time parsing, bare literals (`code: MEDS_BIRTH`), and `time: null` for static
-# events. Per-table `_table:` blocks support derived columns (`cols:`) and joins (`join:`);
+# events. Per-table `_table:` blocks support derived columns (`cols:`) and joins (`joins:`);
 # per-event `_metadata:` blocks populate `metadata/codes.parquet` from reference tables.
 example_table:
   example_event:

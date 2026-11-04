@@ -10,7 +10,7 @@ authors = [
 ]
 description = "{{ package_description }}"
 readme = "README.md"
-# Mirrors MEDS-Extract 0.7's own interpreter range; a looser floor/ceiling here would admit
+# Mirrors MEDS-Extract 0.8's own interpreter range; a looser floor/ceiling here would admit
 # interpreters it cannot be installed on.
 requires-python = ">=3.11.4,<3.14"
 classifiers = [
@@ -22,7 +22,7 @@ classifiers = [
 # CLI), so raise this deliberately when migrating. The `[download]` extra provides
 # `meds-extract-download`, which `meds-extract-run` spawns to stage the raw data.
 dependencies = [
-  "MEDS-extract[download]>=0.7.0,<0.8",
+  "MEDS-extract[download]>=0.8.0,<0.9",
 ]
 
 [dependency-groups]

@@ -63,7 +63,7 @@ What you get:
 
 ### What this template does *not* cover
 
-Datasets that need custom *code* — pre-MEDS wrangling beyond what MESSY `_table.cols`/`_table.join`
+Datasets that need custom *code* — pre-MEDS wrangling beyond what MESSY `_table.cols`/`_table.joins`
 transformations can express (e.g. archive unpacking or complex reshaping) — are out of scope for
 the config-only shape. For those, write the pre-processing separately and run the standalone route
 (`meds-extract-download` + `MEDS_transform-pipeline`) documented in
