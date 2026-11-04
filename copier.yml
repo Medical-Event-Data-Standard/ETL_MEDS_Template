@@ -1,0 +1,81 @@
+# Copier template configuration for MEDS-Extract dataset ETL packages.
+# See README.md for usage; https://copier.readthedocs.io/ for copier itself.
+_min_copier_version: "9.4.0"
+_subdirectory: template
+
+# ---- questions ----
+dataset_name:
+  type: str
+  help: Public dataset name — becomes the registered spec name users type (e.g. "MIMIC-IV")
+  placeholder: MIMIC-IV
+  validator: >-
+    {% if not (dataset_name | regex_search('^[A-Za-z0-9][A-Za-z0-9._-]*$')) %}
+    dataset_name must start with a letter or digit and contain only letters, digits,
+    '.', '_', or '-' (it is used as the registered entry-point name).
+    {% endif %}
+
+package_name:
+  type: str
+  help: Python import name; also the directory under src/ (e.g. MIMIC_IV_MEDS)
+  default: "{{ dataset_name | replace('-', '_') | replace('.', '_') }}_MEDS"
+  validator: >-
+    {% if not (package_name | regex_search('^[A-Za-z][A-Za-z0-9_]*$')) %}
+    package_name must be a valid Python identifier.
+    {% endif %}
+
+pypi_name:
+  type: str
+  help: PyPI distribution name (users will `pip install` this)
+  default: "{{ package_name | replace('_', '-') }}"
+
+github_org:
+  type: str
+  help: GitHub organization or username that will host the repository
+  default: Medical-Event-Data-Standard
+
+github_repo:
+  type: str
+  default: "{{ package_name }}"
+
+package_description:
+  type: str
+  default: "An ETL to extract the {{ dataset_name }} dataset into the MEDS format."
+
+author_name:
+  type: str
+  help: Your name (used in pyproject.toml, CITATION.cff, and LICENSE)
+
+author_email:
+  type: str
+
+has_demo:
+  type: bool
+  help: Does this dataset have an openly downloadable demo version (enables an end-to-end CI test)?
+  default: false
+
+# ---- behavior ----
+# User-owned files: rendered once as a seed, never overwritten by `copier update`.
+_skip_if_exists:
+  - "src/{{ package_name }}/configs/event_configs.yaml"
+  - "README.md"
+  - "CITATION.cff"
+
+_message_after_copy: |
+  {{ package_name }} generated. Next steps:
+
+    1. cd into the project and initialize it:
+         git init -b main
+         uv lock && uv sync --group dev --group tests
+         uv run pre-commit install
+    2. Fill in src/{{ package_name }}/configs/event_configs.yaml — the `sources:` block
+       (where the raw data lives) and the event-conversion tables. See
+       https://github.com/mmcdermott/MEDS_extract for the MESSY file format.
+    3. Validate with `uv run pytest tests/`, then commit everything, INCLUDING
+       uv.lock and .copier-answers.yml.
+    4. Set up PyPI trusted publishing (and, optionally, Zenodo) — see README.md.
+
+  Once published, the whole ETL is one command:
+      pip install {{ pypi_name }}
+      meds-extract-run spec={{ dataset_name }} output_dir=/path/to/output
+
+  To pull in future template fixes: `uvx copier update` (requires a clean git tree).

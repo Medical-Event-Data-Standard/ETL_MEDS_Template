@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{{ pypi_name }}"
+dynamic = ["version"]
+authors = [
+  { name="{{ author_name }}", email="{{ author_email }}" },
+]
+description = "{{ package_description }}"
+readme = "README.md"
+# Mirrors MEDS-Extract 0.8's own interpreter range; a looser floor/ceiling here would admit
+# interpreters it cannot be installed on.
+requires-python = ">=3.11.4,<3.14"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+# Capped explicitly below the next minor: MEDS-Extract 0.x minors are breaking (MESSY syntax, runner
+# CLI), so raise this deliberately when migrating. The `[download]` extra provides
+# `meds-extract-download`, which `meds-extract-run` spawns to stage the raw data.
+dependencies = [
+  "MEDS-extract[download]>=0.8.0,<0.9",
+]
+
+[dependency-groups]
+dev = ["pre-commit<4"]
+tests = ["pytest"]
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
+
+# Registers this dataset with MEDS-Extract's generic runner: after `pip install`,
+# `meds-extract-run spec={{ dataset_name }} output_dir=...` runs the whole ETL, and the
+# output's provenance metadata is stamped with this package's version automatically.
+[project.entry-points."MEDS_extract.pipelines"]
+"{{ dataset_name }}" = "{{ package_name }}.configs:event_configs.yaml"
+
+[project.urls]
+Homepage = "https://github.com/{{ github_org }}/{{ github_repo }}"
+Issues = "https://github.com/{{ github_org }}/{{ github_repo }}/issues"

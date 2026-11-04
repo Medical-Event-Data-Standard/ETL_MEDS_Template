@@ -1,0 +1,16 @@
+"""Offline validation of this package's registered MESSY configuration.
+
+Runs with no network access and no credentials: ``MessyConfig.load`` resolves the registered
+``MEDS_extract.pipelines`` entry point to the bundled MESSY file and validates the event-conversion
+section (``sources:`` interpolations are left unresolved, so download-side ``${oc.env:...}``
+variables are never required). This proves the entry point is wired correctly, the YAML ships as
+package data, and the config parses — for every dataset, demo version or not.
+"""
+
+from MEDS_extract.config import MessyConfig
+
+
+def test_registered_spec_loads():
+    cfg = MessyConfig.load("{{ dataset_name }}")
+    assert cfg.dataset_name == "{{ dataset_name }}"
+    assert len(cfg.table_prefixes) > 0, "The MESSY file must define at least one event table."

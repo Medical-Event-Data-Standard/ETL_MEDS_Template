@@ -1,8 +1,6 @@
 default_language_version:
   python: python3.12
 
-exclude: "docs/index.md|MIMIC-IV_Example/README.md|eICU_Example/README.md|AUMCdb_Example/README.md"
-
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -107,7 +105,7 @@ repos:
       - id: codespell
         args:
           - --skip=logs/**,data/**,*.ipynb,*.bib,env.yml,env_cpu.yml,*.svg,poetry.lock
-          - --ignore-words-list=ehr,crate
+          - --ignore-words-list=ehr,crate,copie
 
   # jupyter notebook cell output clearing
   - repo: https://github.com/kynan/nbstripout
