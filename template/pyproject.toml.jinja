@@ -20,20 +20,23 @@ classifiers = [
 ]
 # The whole ETL is `event_configs.yaml`, run by MEDS-Extract's own `meds-extract-run`. Its
 # `[download]` extra adds `meds-extract-download`, which the runner spawns to stage the raw data.
-# 0.9.0 writes `unit` in `metadata/codes.parquet` as one String per code (and fails on a code with
+# 0.9 writes `unit` in `metadata/codes.parquet` as one String per code (and fails on a code with
 # two units). suMEDS registers the post-stages the spec declares (`sumeds_link_unit_siblings`,
 # `sumeds_normalize_units`, `sumeds_enrich`) and `suMEDS-enrich` for an existing build; its
-# `sumeds.testing` module holds the contract tests of tests/. Both are capped below the next minor,
-# because their 0.x minors are breaking (MESSY syntax, runner CLI, rules format): raise them
-# deliberately. MEDS-transforms, polars and hydra arrive through them at the versions they fence.
+# `testing` extra (in the dev group below) holds the contract tests of tests/. Both are capped below
+# the next minor, because their 0.x minors are breaking (MESSY syntax, runner CLI, rules format):
+# raise them deliberately. MEDS-transforms, polars and hydra arrive through them at the versions
+# they fence.
 dependencies = [
-    "meds-extract[download]>=0.9.0,<0.10",
-    "sumeds>=0.6.7,<0.7",
+    "meds-extract[download]>=0.9.1,<0.10",
+    "sumeds>=0.6.8,<0.7",
 ]
 
 [dependency-groups]
 # `shfmt-py` bundles the `shfmt` binary the `mdformat-shfmt` pre-commit hook shells out to.
+# `sumeds[testing]` adds `sumeds.testing`, whose contract tests and helpers tests/ use.
 dev = [
+    "sumeds[testing]>=0.6.8,<0.7",
     "pre-commit~=3.8",
     "ruff>=0.11,<1.0",
     "pytest~=9.0",
@@ -61,11 +64,6 @@ fallback_version = "0.0.0"
 [project.urls]
 Homepage = "https://github.com/{{ github_org }}/{{ github_repo }}"
 Issues = "https://github.com/{{ github_org }}/{{ github_repo }}/issues"
-
-# TODO(template): until suMEDS releases `sumeds.testing` (rvandewater/suMEDS#28), the contract tests
-# need suMEDS from that branch. Drop this table and raise the floor above to that release once it is out.
-[tool.uv.sources]
-sumeds = { git = "https://github.com/rvandewater/suMEDS", branch = "testing-module" }
 
 [tool.ruff]
 target-version = "py311"

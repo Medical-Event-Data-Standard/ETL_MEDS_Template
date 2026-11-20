@@ -134,12 +134,13 @@ Changes that need action in a package generated from an earlier template version
   Before `copier update`, move it and drop the `configs` package:
 
   ```bash
-  git mv src/<package>/configs/event_configs.yaml src/<package>/event_configs.yaml
-  git rm src/<package>/configs/__init__.py
+  pkg=your_package # the package name, as in src/
+  git mv "src/$pkg/configs/event_configs.yaml" "src/$pkg/event_configs.yaml"
+  git rm "src/$pkg/configs/__init__.py"
   ```
 
-- **MEDS-Extract 0.9 and suMEDS.** The dependencies are now `meds-extract[download]>=0.9.0,<0.10` and
-  `sumeds`. The spec must declare `etl.post_stages` (`sumeds_link_unit_siblings`,
+- **MEDS-Extract 0.9 and suMEDS.** The dependencies are now `meds-extract[download]>=0.9.1,<0.10` and
+  `sumeds>=0.6.8,<0.7`, and the `dev` group adds `sumeds[testing]>=0.6.8,<0.7` for the contract tests. The spec must declare `etl.post_stages` (`sumeds_link_unit_siblings`,
   `sumeds_normalize_units`, your own, `sumeds_enrich: {rules: <dataset name>}`), and the package
   must ship `sumeds_rules.yaml`, registered under `sumeds.rules`. The new tests check both.
 
