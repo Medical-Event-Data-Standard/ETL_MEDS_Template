@@ -10,6 +10,7 @@ dev = [
   "copier>=9.4",
   "pytest",
   "pytest-copie",
+  "pyyaml",
 ]
 
 [tool.uv]

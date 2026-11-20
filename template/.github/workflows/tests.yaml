@@ -1,5 +1,9 @@
 name: Tests
 
+# The spec runs end to end over the toy input of tests/conftest.py, plain and with the suMEDS
+# enrichment stage against a tiny local ontology source (no network), and suMEDS's contract tests
+# check the rules and the enrichment.
+
 on:
   push:
     branches: [main]
@@ -19,12 +23,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup package
         uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
-          group: "tests"
 
       - name: Run tests
         run: uv run pytest tests/ -v

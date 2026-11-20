@@ -1,0 +1,32 @@
+{%- set rule_prefix = dataset_name | lower | replace('_', '-') | replace('.', '-') -%}
+# suMEDS enrichment rules for the {{ dataset_name }} code metadata (https://github.com/rvandewater/suMEDS).
+#
+# pyproject.toml registers this file with suMEDS under the spec's name, `{{ dataset_name }}`, and the spec's
+# `sumeds_enrich` post-stage names it, so `meds-extract-run spec={{ dataset_name }} output_dir=$MEDS_OUTPUT_DIR`
+# applies it after the ETL. For an existing build:
+#
+#   suMEDS-enrich $MEDS_OUTPUT_DIR --rules {{ dataset_name }}
+#
+# Every pattern must match a code layout of `event_configs.yaml` exactly (anchored with ^...$);
+# tests/test_sumeds_rules.py checks the rules against example codes. See suMEDS's docs/rules.md for
+# `ontology` (regex to a vocabulary code, validated against a pack), `crosswalk` (a hosted lookup
+# table) and `hierarchy` (parents that are codes of the same dataset) rules.
+#
+# TODO: these rules match the toy diagnoses of the example spec; write the real ones.
+schema: sumeds-rules/0.1
+
+ontology:
+  # DIAGNOSIS//ICD10CM//{code}: ICD-10-CM codes with the dot after the category, the format of
+  # suMEDS's ICD-10-CM pack and of OMOP concept codes. Validated codes get the CMS title (where the
+  # ETL wrote no description) and the code and its ancestors as parents.
+  - id: {{ rule_prefix }}-icd10cm-diagnoses
+    pattern: '^DIAGNOSIS//ICD10CM//(?P<code>[A-Z][0-9][0-9A-Z](?:\.[0-9A-Z]{1,4})?)$'
+    vocabulary: ICD10CM
+    validate: pack
+
+hierarchy:
+  # Same-dataset parents: the nearest ICD-10-CM ancestor that is itself a diagnosis code of the
+  # dataset, e.g. DIAGNOSIS//ICD10CM//I50.2 for DIAGNOSIS//ICD10CM//I50.23.
+  - id: {{ rule_prefix }}-diagnosis-parents-in-dataset
+    from_ontology: true
+    rules: [{{ rule_prefix }}-icd10cm-diagnoses]

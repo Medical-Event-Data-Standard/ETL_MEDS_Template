@@ -6,7 +6,7 @@ inputs:
     required: true
     default: "3.12"
   group:
-    description: The dependency group to install (dev, tests)
+    description: The dependency group to install (dev)
     required: false
     default: "dev"
 runs:

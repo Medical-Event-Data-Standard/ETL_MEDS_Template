@@ -1,0 +1,37 @@
+{%- set rule_prefix = dataset_name | lower | replace('_', '-') | replace('.', '-') -%}
+"""The packaged suMEDS rules load in suMEDS and resolve the codes the spec writes.
+
+suMEDS's shared rules contract (`sumeds.testing.contracts.RulesContract`) checks that the rules are
+packaged, registered under the spec's name, load in suMEDS with anchored patterns, that the spec runs
+the suMEDS post-stages in order, and that the example codes resolve to exactly the expected rule and
+vocabulary code. So this file only states what is {{ dataset_name }}'s own. Nothing is read over the network;
+the enrichment itself runs offline in `test_run_with_enrichment.py`.
+
+TODO: expect the codes of the real rules. To test the codes the ETL writes, or codes rendered from the
+spec's code templates, override the `example_codes` fixture.
+"""
+
+from typing import ClassVar
+
+import pytest
+from sumeds.testing.contracts import RulesContract
+
+DIAGNOSIS_RULE = "{{ rule_prefix }}-icd10cm-diagnoses"
+
+
+class TestRules(RulesContract):
+    rules_name = "{{ dataset_name }}"
+    # The ETL's own post-stages, which run between `sumeds_normalize_units` and `sumeds_enrich`.
+    own_post_stages: ClassVar = ()
+    # code -> (ontology rule, vocabulary code); every other example code must match no rule.
+    expected_ontology: ClassVar = {
+        "DIAGNOSIS//ICD10CM//I50.23": (DIAGNOSIS_RULE, "I50.23"),
+        "DIAGNOSIS//ICD10CM//I10": (DIAGNOSIS_RULE, "I10"),
+    }
+
+    @pytest.fixture(scope="class")
+    @classmethod
+    def example_codes(cls) -> list[str]:
+        """The expected codes, and codes of other families that no rule may match."""
+        others = ["MEDS_BIRTH", "LAB//creatinine//mg/dL", "DIAGNOSIS//ICD10CM//not-a-code"]
+        return [*cls.expected_ontology, *others]

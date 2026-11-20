@@ -1,0 +1,29 @@
+"""`meds-extract-run spec={{ dataset_name }}` runs the ETL and then suMEDS enrichment, offline.
+
+The tests are suMEDS's shared enrichment contract (`sumeds.testing.contracts.EnrichmentContract`), run
+over the synthetic input of `e2e_synthetic_test.py`: once with `skip_stages=[sumeds_enrich]` (the plain
+ETL) and once with the stage, against a tiny ontology source in suMEDS's `sumeds-ontologies/0.1` layout
+with made-up titles, so nothing is read over the network. Further runs check the soft failure without
+packs, its `suMEDS-enrich` retry, `strict` and `offline`. This file only states what is {{ dataset_name }}'s
+own: the synthetic packs and the codes, parents and descriptions it expects.
+
+TODO: packs and expectations for the real rules.
+"""
+
+from typing import ClassVar
+
+from sumeds.testing.contracts import EnrichmentContract
+
+DIAGNOSIS = "DIAGNOSIS//ICD10CM//I50.23"
+
+
+class TestEnrichment(EnrichmentContract):
+    rules_name = "{{ dataset_name }}"
+    # vocabulary -> (release, code -> parent; None for a top-level code). I10 is deliberately missing,
+    # as a code suMEDS cannot validate would be, so DIAGNOSIS//ICD10CM//I10 must stay unenriched.
+    packs: ClassVar = {"ICD10CM": ("fy2016-fy2027", {"I50": None, "I50.2": "I50", "I50.23": "I50.2"})}
+    # The validated code and its ancestors become the parents, each named with its pack title.
+    expected_parents: ClassVar = {DIAGNOSIS: ["ICD10CM//I50.23", "ICD10CM//I50.2", "ICD10CM//I50"]}
+    # The description the ETL wrote is kept.
+    expected_descriptions: ClassVar = {DIAGNOSIS: "Diagnosis I50.23 (diagnoses.icd10_code)"}
+    unenriched_codes: ClassVar = ["DIAGNOSIS//ICD10CM//I10", "LAB//creatinine//mg/dL", "MEDS_BIRTH"]

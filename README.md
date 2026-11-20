@@ -36,9 +36,9 @@ steps:
 ```bash
 cd my_dataset_MEDS
 git init -b main
-uv lock && uv sync --group dev --group tests
+uv lock && uv sync --group dev
 uv run pre-commit install
-# Fill in src/<package>/configs/event_configs.yaml, then:
+# Replace the toy example in src/<package>/event_configs.yaml, sumeds_rules.yaml and tests/, then:
 uv run pytest tests/ -v
 git add -A && git commit -m "Initial commit from ETL_MEDS_Template"
 ```
@@ -46,20 +46,38 @@ git add -A && git commit -m "Initial commit from ETL_MEDS_Template"
 Commit everything the render produced, **including `uv.lock` and `.copier-answers.yml`** — the
 latter is what lets `copier update` work later.
 
-What you get:
+What you get, laid out like the current MEDS ETLs (Zigong_MEDS and PICdb_MEDS were the model):
 
-- `src/<package>/configs/event_configs.yaml` — the MESSY file: a `sources:` block (where the raw
-  data lives — HTTP, PhysioNet, or fsspec backends, with `${oc.env:...}` credential
-  interpolation) plus the event-conversion tables. This file is yours; the template seeds it once
-  and never overwrites it.
-- A `pyproject.toml` registering the file under the `MEDS_extract.pipelines` entry-point group, so
-  `meds-extract-run spec=<dataset name>` finds it by name and stamps your package's version into
-  the output's provenance metadata.
-- Tests: an offline check that the registered MESSY file resolves and parses (works for every
-  dataset), plus — if you answered that your dataset has an open demo release — an end-to-end CI
-  test running the full pipeline against it.
-- CI (tests + pre-commit code quality), a tag-triggered PyPI publishing workflow (see
-  [PyPI setup](#pypi) below), a seeded `README.md` and `CITATION.cff`, and an MIT license.
+- `src/<package>/event_configs.yaml`: the MESSY file (MEDS-Extract 0.9). Its `etl:` block declares the
+  post-stages in the fleet's order: `sumeds_link_unit_siblings` → `sumeds_normalize_units` → the ETL's
+  own post-stages → `sumeds_enrich`. Below it are the event-conversion tables (a toy example of three
+  tables that shows the conventions: `_self` descriptions on every event, units in the code where an
+  item has several), and a `sources:` block at the end (HTTP, PhysioNet or fsspec backends, with
+  `${oc.env:...}` credential interpolation).
+- `src/<package>/sumeds_rules.yaml`: the [suMEDS](https://github.com/rvandewater/suMEDS) enrichment rules
+  (a toy ICD-10-CM rule).
+- A `pyproject.toml` registering the spec under `MEDS_extract.pipelines` and the rules under
+  `sumeds.rules`, both as the dataset name, so `meds-extract-run spec=<dataset name>` finds the spec
+  and its `sumeds_enrich` stage finds the rules. It also pins MEDS-Extract and suMEDS, and has one
+  `dev` dependency group and the fleet's ruff settings.
+- Tests:
+  - `tests/conftest.py` writes a tiny synthetic input;
+  - `tests/e2e_synthetic_test.py` runs the ETL over it;
+  - `tests/test_config.py` checks the spec;
+  - `tests/test_sumeds_rules.py` and `tests/test_run_with_enrichment.py` are suMEDS's shared contract
+    tests (`sumeds.testing.contracts`), offline;
+  - if your dataset has an open demo release, an end-to-end test against it.
+- CI:
+  - tests;
+  - a **synthetic-ETL** workflow that generates raw data from the spec with MESSY-synth 0.1.1 and
+    runs the ETL over it;
+  - a **summary-stats** workflow that warns when the ETL changes but its baseline does not;
+  - pre-commit code quality;
+  - a tag-triggered PyPI publishing workflow (see [PyPI setup](#pypi) below).
+- `scripts/summary_stats.sh` and `tests/regression/policy.yaml`, which regenerate and compare a
+  [meds_summary_stats](https://github.com/Medical-Event-Data-Standard/meds_summary_stats) baseline of
+  the full release.
+- A seeded `README.md` (with a `## Breaking changes` section), `CITATION.cff` and an MIT license.
 
 ### What this template does *not* cover
 
@@ -79,8 +97,8 @@ tree:
 uvx copier update
 ```
 
-Review the diff, resolve any conflicts (your `event_configs.yaml`, `README.md`, and `CITATION.cff`
-are never overwritten), and commit. Updates are pinned to this template's git tags, released per
+Review the diff, resolve any conflicts (your spec, rules, tests, `README.md` and `CITATION.cff` are
+never overwritten), and commit. Updates are pinned to this template's git tags, released per
 [PEP 440](https://peps.python.org/pep-0440/) ordering.
 
 ## External services for your generated package
@@ -103,6 +121,35 @@ Example trusted publisher set-up:
 [Zenodo](https://zenodo.org/) can archive your releases and assign a citable DOI: follow
 [GitHub's guide](https://docs.github.com/en/repositories/archiving-a-github-repository/referencing-and-citing-content),
 then record the DOI in your `README.md` and `CITATION.cff`.
+
+## Breaking changes
+
+Changes that need action in a package generated from an earlier template version, newest first.
+
+### Unreleased (after 0.1.0)
+
+- **The spec moved** from `src/<package>/configs/event_configs.yaml` to
+  `src/<package>/event_configs.yaml`, where most MEDS ETLs keep it. The `MEDS_extract.pipelines`
+  entry point changed from `<package>.configs:event_configs.yaml` to `<package>:event_configs.yaml`.
+  Before `copier update`, move it and drop the `configs` package:
+
+  ```bash
+  git mv src/<package>/configs/event_configs.yaml src/<package>/event_configs.yaml
+  git rm src/<package>/configs/__init__.py
+  ```
+
+- **MEDS-Extract 0.9 and suMEDS.** The dependencies are now `meds-extract[download]>=0.9.0,<0.10` and
+  `sumeds`. The spec must declare `etl.post_stages` (`sumeds_link_unit_siblings`,
+  `sumeds_normalize_units`, your own, `sumeds_enrich: {rules: <dataset name>}`), and the package
+  must ship `sumeds_rules.yaml`, registered under `sumeds.rules`. The new tests check both.
+
+- **One dependency group.** The `tests` group is gone: pytest is in `dev`, so use
+  `uv sync --group dev`. The setup action's default group is `dev`.
+
+- **pre-commit** now uses ruff (lint and format) instead of black, isort, autoflake, pyupgrade and
+  flake8: the configuration most MEDS ETLs share.
+
+- `tests/test_configs.py` is replaced by `tests/test_config.py`.
 
 ## Template development
 

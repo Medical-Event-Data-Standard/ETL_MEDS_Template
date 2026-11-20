@@ -97,6 +97,7 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-copie" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
@@ -107,6 +108,7 @@ dev = [
     { name = "pre-commit", specifier = "<4" },
     { name = "pytest" },
     { name = "pytest-copie" },
+    { name = "pyyaml" },
 ]
 
 [[package]]

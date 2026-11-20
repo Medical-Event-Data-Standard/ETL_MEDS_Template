@@ -1,0 +1,75 @@
+"""End-to-end run of the packaged ETL over a tiny, fully synthetic input.
+
+This writes a few made-up rows in the layout the spec reads and runs
+`meds-extract-run spec={{ dataset_name }}` over them with downloading disabled. Driving it through the
+registered name rather than a path makes this test cover the entry-point registration too. It leaves out
+the spec's suMEDS enrichment stage (`skip_stages=[sumeds_enrich]`), which would otherwise fetch ontology
+packs; `test_run_with_enrichment.py` runs it over the same input, offline. It checks the spec's
+mechanics (column references, parsing, units), not that a real release still matches the spec: only a
+run over the real files can do that, see "Summary statistics" in the README.
+"""
+
+from pathlib import Path
+
+import polars as pl
+import pyarrow.parquet as pq
+import pytest
+from conftest import N_SUBJECTS
+from meds import CodeMetadataSchema, DataSchema
+from sumeds.testing import dataset_metadata, read_codes, run_cli
+
+SPEC = "{{ dataset_name }}"
+RAW_VERSION = "1.0"
+
+
+@pytest.fixture(scope="session")
+def meds_output(tmp_path_factory, raw_dir: Path) -> Path:
+    """The plain ETL: every stage but `sumeds_enrich`."""
+    output_dir = tmp_path_factory.mktemp("plain") / "MEDS_cohort"
+    run_cli(
+        "meds-extract-run",
+        f"spec={SPEC}",
+        f"output_dir={output_dir}",
+        "do_download=false",
+        f"input_dir={raw_dir}",
+        "skip_stages=[sumeds_enrich]",
+    )
+    return output_dir
+
+
+def test_layout_and_identity(meds_output: Path):
+    data_files = sorted((meds_output / "data").rglob("*.parquet"))
+    assert data_files, f"no data shards under {meds_output / 'data'}"
+    for fp in data_files:
+        DataSchema.validate(pq.read_table(fp))
+    dataset = dataset_metadata(meds_output)
+    assert dataset["dataset_name"] == SPEC
+    assert dataset["dataset_version"].startswith(f"{RAW_VERSION}:")
+    assert (meds_output / "metadata" / "subject_splits.parquet").exists()
+
+
+def test_every_event_block_produces_events(meds_output: Path):
+    data = pl.concat([pl.read_parquet(fp) for fp in (meds_output / "data").rglob("*.parquet")])
+    assert data["subject_id"].n_unique() == N_SUBJECTS
+    codes = set(data["code"])
+    assert {
+        "MEDS_BIRTH",
+        "DIAGNOSIS//ICD10CM//I50.23",
+        "DIAGNOSIS//ICD10CM//I10",
+        "LAB//creatinine//mg/dL",
+        "LAB//creatinine//umol/L",
+        "LAB//sodium//mmol/L",
+        "LAB//sodium//UNK",
+    } <= codes
+
+
+def test_code_metadata(meds_output: Path):
+    CodeMetadataSchema.validate(pq.read_table(meds_output / "metadata" / "codes.parquet"))
+    rows = read_codes(meds_output)
+    assert rows["DIAGNOSIS//ICD10CM//I10"]["description"] == "Diagnosis I10 (diagnoses.icd10_code)"
+    assert rows["LAB//creatinine//umol/L"]["unit"] == "umol/L"
+    # `sumeds_link_unit_siblings` gives codes that differ only in their unit a stem as parent, and the stem
+    # a row of its own; an `UNK` code joins its item's siblings.
+    assert rows["LAB//creatinine//mg/dL"]["parent_codes"] == ["LAB//creatinine"]
+    assert rows["LAB//sodium//UNK"]["parent_codes"] == ["LAB//sodium"]
+    assert rows["LAB//creatinine"]["unit"] is None
