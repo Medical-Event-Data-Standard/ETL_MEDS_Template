@@ -1,0 +1,50 @@
+"""A tiny, fully synthetic {{ dataset_name }}-shaped input, shared by the tests.
+
+TODO: write rows for the real tables, with their exact headers and file layout. None of the values may
+come from the real dataset.
+"""
+
+from pathlib import Path
+
+import polars as pl
+import pytest
+
+N_SUBJECTS = 10  # MEDS-Extract needs at least one subject in each of the train, tuning and held-out splits
+
+TABLES = {
+    "patients": {
+        "subject_id": list(range(1, N_SUBJECTS + 1)),
+        "birth_date": [f"19{50 + s}-01-01" for s in range(1, N_SUBJECTS + 1)],
+    },
+    "diagnoses": {
+        "subject_id": [1, 2, 3],
+        "charttime": ["2020-01-01 10:00:00", "2020-02-01 11:00:00", "2020-03-01 12:00:00"],
+        "icd10_code": ["I50.23", "I10", "I50.23"],
+    },
+    "labs": {
+        "subject_id": [1, 2, 3, 4],
+        "charttime": [
+            "2020-01-01 11:00:00",
+            "2020-02-01 12:00:00",
+            "2020-03-01 13:00:00",
+            "2020-04-01 14:00:00",
+        ],
+        "item": ["creatinine", "creatinine", "sodium", "sodium"],
+        "value": [1.1, 97.0, 140.0, 139.0],
+        "valueuom": ["mg/dL", "umol/L", "mmol/L", None],
+    },
+}
+
+
+def write_synthetic_input(root: Path) -> None:
+    """The toy raw tables, as CSV files under `root`."""
+    root.mkdir(parents=True, exist_ok=True)
+    for name, columns in TABLES.items():
+        pl.DataFrame(columns).write_csv(root / f"{name}.csv")
+
+
+@pytest.fixture(scope="session")
+def raw_dir(tmp_path_factory) -> Path:
+    raw = tmp_path_factory.mktemp("raw")
+    write_synthetic_input(raw)
+    return raw

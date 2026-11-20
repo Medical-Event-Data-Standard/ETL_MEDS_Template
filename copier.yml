@@ -55,8 +55,15 @@ has_demo:
 
 # ---- behavior ----
 # User-owned files: rendered once as a seed, never overwritten by `copier update`.
+# The spec, the rules and the tests start as a toy example that the project replaces.
 _skip_if_exists:
-  - "src/{{ package_name }}/configs/event_configs.yaml"
+  - "src/{{ package_name }}/event_configs.yaml"
+  - "src/{{ package_name }}/sumeds_rules.yaml"
+  - "tests/conftest.py"
+  - "tests/e2e_synthetic_test.py"
+  - "tests/test_config.py"
+  - "tests/test_sumeds_rules.py"
+  - "tests/test_run_with_enrichment.py"
   - "README.md"
   - "CITATION.cff"
 
@@ -65,14 +72,21 @@ _message_after_copy: |
 
     1. cd into the project and initialize it:
          git init -b main
-         uv lock && uv sync --group dev --group tests
+         uv lock && uv sync --group dev
          uv run pre-commit install
-    2. Fill in src/{{ package_name }}/configs/event_configs.yaml — the `sources:` block
-       (where the raw data lives) and the event-conversion tables. See
-       https://github.com/mmcdermott/MEDS_extract for the MESSY file format.
+    2. Replace the toy example with the real dataset:
+       - src/{{ package_name }}/event_configs.yaml: the `etl:` settings, the tables, and the
+         `sources:` block (where the raw data lives). See https://github.com/mmcdermott/MEDS_extract
+         for the MESSY format. Keep the order of `etl.post_stages`.
+       - src/{{ package_name }}/sumeds_rules.yaml: the suMEDS enrichment rules.
+       - tests/conftest.py: synthetic rows in the real tables' layout, and the expectations in
+         tests/ (the contract tests come from suMEDS's `sumeds.testing`).
+       - README.md: the TODO sections.
     3. Validate with `uv run pytest tests/`, then commit everything, INCLUDING
        uv.lock and .copier-answers.yml.
-    4. Set up PyPI trusted publishing (and, optionally, Zenodo) — see README.md.
+    4. Build the full release and commit its summary-stats baseline:
+         scripts/summary_stats.sh full --input-dir $RAW_INPUT_DIR
+    5. Set up PyPI trusted publishing (and, optionally, Zenodo); see README.md.
 
   Once published, the whole ETL is one command:
       pip install {{ pypi_name }}

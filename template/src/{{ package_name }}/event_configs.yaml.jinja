@@ -1,0 +1,115 @@
+# The MESSY (MEDS-Extract Specification Syntax YAML) file for {{ dataset_name }}.
+#
+# This one file *is* the ETL: `etl:` supplies the run settings and the post-stages, every other
+# top-level key except `_defaults` and `sources` is a raw table whose rows become MEDS events, and
+# `sources:` (at the end) says where the raw data comes from. It is registered with MEDS-Extract's
+# generic runner under the name `{{ dataset_name }}` (the `MEDS_extract.pipelines` entry point in
+# pyproject.toml), so once this package is installed the whole ETL is one command:
+#
+#     meds-extract-run spec={{ dataset_name }} output_dir=$MEDS_OUTPUT_DIR
+#
+# That command also enriches `metadata/codes.parquet` with suMEDS: the `sumeds_enrich` post-stage
+# declared under `etl:` uses `sumeds_rules.yaml`, which pyproject.toml registers with suMEDS under the
+# same name. `skip_stages=[sumeds_enrich]` leaves it out.
+#
+# TODO: everything below the `etl:` block is a toy example (three made-up tables) that shows the
+# conventions; replace it with the real tables. tests/e2e_synthetic_test.py writes matching toy raw
+# data, so update it together with this file. See https://github.com/mmcdermott/MEDS_extract for the
+# MESSY format: field values are dftly expressions such as `$column`, `f"PREFIX//{$col}"` (a null
+# component drops the row; coalesce with `?? 'UNK'` to keep it), `$ts::"%Y-%m-%d %H:%M:%S"`
+# (strict) or `$ts::?"..."` (lenient) time parsing, and `time: null` for static events. Per-table
+# `_table:` blocks add derived columns (`cols:`) and joins (`joins:`); per-event `_metadata:` blocks
+# fill `metadata/codes.parquet`, from reference tables or, with `_self`, from the event's own row.
+
+etl:
+  # `meds-extract-run` defaults the dataset name to the registered entry-point name; this makes the
+  # spec self-describing when it is run by path. Keep it equal to the entry-point name.
+  dataset_name: {{ dataset_name }}
+  n_subjects_per_shard: 1000
+  # Written to `metadata/dataset.json`. TODO: the release's licence and landing page; keep the URI's
+  # version in step with `sources.dataset_version`.
+  license: TODO licence of the {{ dataset_name }} release
+  description_uri: https://example.com/{{ dataset_name }}/1.0/
+  # After the canonical stages, in this order:
+  # 1. suMEDS's `sumeds_link_unit_siblings` gives codes that differ only in their last `//<unit>`
+  #    part (`LAB//creatinine//mg/dL`, `LAB//creatinine//umol/L`) the code without it as a parent,
+  #    with a row of its own; a code whose unit was not recorded (`…//UNK`) joins its item's siblings.
+  # 2. `sumeds_normalize_units` writes every `unit` in UCUM (suMEDS's shared table); the spelling as
+  #    recorded stays in `unit_source_value`, and an unknown spelling is kept as it is.
+  # 3. This ETL's own post-stages, if any (registered in pyproject.toml's `MEDS_transforms.stages`).
+  # 4. `sumeds_enrich` adds vocabulary tags, titles and parent codes from `sumeds_rules.yaml` and
+  #    records the result in `dataset.json` under `sumeds_enrichment`. If it cannot (no internet, say),
+  #    the ETL still succeeds, unenriched, and `suMEDS-enrich <output_dir>` finishes it later.
+  # suMEDS's contract tests (tests/test_sumeds_rules.py) check this order.
+  post_stages:
+    - sumeds_link_unit_siblings
+    - sumeds_normalize_units
+    - sumeds_enrich: { rules: {{ dataset_name }} }
+
+# Fields inherited by every table: here, the MEDS subject ID is the raw `subject_id` column.
+_defaults:
+  subject_id: $subject_id
+
+# Every event describes its codes in `metadata/codes.parquet` through a `_metadata: _self:` block (a
+# template over the event's own columns that names the source column), so every code family has a
+# description; tests/test_config.py checks that. A literal code is quoted (`'"MEDS_BIRTH"'`) so that a
+# `_self` block can attach to it.
+patients:
+  birth:
+    code: '"MEDS_BIRTH"'
+    time: '$birth_date::"%Y-%m-%d"'
+    _metadata:
+      _self:
+        description: '"Date of birth (patients.birth_date)"'
+
+# Diagnosis codes keep their vocabulary in the code. suMEDS's ontology rule in `sumeds_rules.yaml`
+# validates them against the ICD-10-CM pack and adds the official title and the ancestors as parents.
+diagnoses:
+  diagnosis:
+    code: 'f"DIAGNOSIS//ICD10CM//{$icd10_code}"'
+    time: '$charttime::"%Y-%m-%d %H:%M:%S"'
+    _metadata:
+      _self:
+        description: 'f"Diagnosis {$icd10_code} (diagnoses.icd10_code)"'
+
+# A measurement whose item can be recorded in several units ends its code in the unit, because
+# MEDS-Extract writes one `unit` per code (and fails if a code has two).
+labs:
+  lab:
+    code: f"LAB//{$item}//{$valueuom ?? 'UNK'}"
+    time: '$charttime::"%Y-%m-%d %H:%M:%S"'
+    numeric_value: $value::?float64
+    _metadata:
+      _self:
+        description: 'f"Laboratory result: {$item} (labs.item)"'
+        # The row's own unit, which is also the code's last part (null for an `UNK` code).
+        unit: $valueuom
+
+sources:
+  # TODO: the raw {{ dataset_name }} release version this ETL targets. It is stamped into the
+  # output's `dataset.json` and may be interpolated into the entries below.
+  dataset_version: "1.0"
+  # Buckets (`dataset`{% if has_demo %}, `demo`{% endif %}) are selected at run time with `dataset_key=`. Backends:
+  # `http` (explicit URL lists), `physionet` (any PhysioNet release, with authentication) and `fsspec`
+  # (local or cloud mirrors). Never put literal credentials here: use `${oc.env:...}`; MEDS-Extract
+  # strips `sources:` from logged and output copies of the config.
+  dataset:
+    # TODO: the real source of the raw data, e.g. for a credentialed PhysioNet release:
+    #   - type: physionet
+    #     base_url: https://physionet.org/files/YOUR_DATASET/${sources.dataset_version}
+    #     username: ${oc.env:DATASET_DOWNLOAD_USERNAME}
+    #     password: ${oc.env:DATASET_DOWNLOAD_PASSWORD}
+    - type: http
+      urls:
+        - https://example.com/{{ dataset_name }}/patients.csv
+        - https://example.com/{{ dataset_name }}/diagnoses.csv
+        - https://example.com/{{ dataset_name }}/labs.csv
+{%- if has_demo %}
+  demo:
+    # TODO: the openly downloadable demo release (`dataset_key=demo` and the e2e demo test).
+    - type: http
+      urls:
+        - https://example.com/{{ dataset_name }}-demo/patients.csv
+        - https://example.com/{{ dataset_name }}-demo/diagnoses.csv
+        - https://example.com/{{ dataset_name }}-demo/labs.csv
+{%- endif %}

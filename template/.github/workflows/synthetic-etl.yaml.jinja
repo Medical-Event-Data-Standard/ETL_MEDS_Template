@@ -1,0 +1,62 @@
+{% raw -%}
+name: Synthetic ETL
+
+# Generates raw files straight from the packaged spec with MESSY-synth and runs the ETL over them.
+# MESSY-synth checks that every event block yields events and fails the job otherwise, so this catches
+# expressions that only work on the dtypes of one particular release. It complements the hand-written
+# toy input of tests/conftest.py, which checks specific values.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, "release/*", "dev"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        # MESSY-synth requires Python >= 3.12.
+        python-version: ["3.12", "3.13"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Generate and extract synthetic data
+        # MESSY-synth 0.1.1 reads MEDS-Extract 0.8 and 0.9 specs, `_table.joins` included. It runs in a
+        # tool environment of its own, which keeps it off the project's locked dependencies. The
+        # extraction runs the packaged spec, suMEDS stages included, with the locked MEDS-Extract.
+        # Without network access to the ontology packs the enrichment soft-fails, which is recorded too.
+        run: |
+{%- endraw %}
+          uvx --python ${{ '{{' }} matrix.python-version {{ '}}' }} --from "MESSY_synth==0.1.1" \
+            MESSY-synth ./src/{{ package_name }}/event_configs.yaml -o raw_synthetic/ --explain
+          uv run --locked meds-extract-run spec={{ dataset_name }} output_dir=./meds_synth \
+            input_dir=raw_synthetic do_download=false
+          for f in dataset.json codes.parquet subject_splits.parquet; do
+            test -f "meds_synth/metadata/$f"
+          done
+          # The stage ran and recorded the enrichment (or, without the packs, a soft failure).
+          jq -e '.sumeds_enrichment.rules == "{{ dataset_name }}"' meds_synth/metadata/dataset.json

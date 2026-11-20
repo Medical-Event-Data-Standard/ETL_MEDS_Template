@@ -2,65 +2,178 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/{{ pypi_name }})](https://pypi.org/project/{{ pypi_name }}/)
 [![tests](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/tests.yaml/badge.svg)](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/tests.yaml)
+[![synthetic-etl](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/synthetic-etl.yaml/badge.svg)](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/synthetic-etl.yaml)
 [![code-quality](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/{{ github_org }}/{{ github_repo }}/actions/workflows/code-quality-main.yaml)
 ![python](https://img.shields.io/badge/-Python_3.11--3.13-blue?logo=python&logoColor=white)
 [![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/{{ github_org }}/{{ github_repo }}#license)
 
-{{ package_description }} Built on [MEDS-Extract](https://github.com/mmcdermott/MEDS_extract).
+{{ package_description }} Built on [MEDS-Extract](https://github.com/mmcdermott/MEDS_extract), with
+code metadata enriched by [suMEDS](https://github.com/rvandewater/suMEDS).
+
+<!-- TODO: a paragraph on the dataset: what it covers, who publishes it, and how to get access
+     (credentialed or open, the data use agreement). -->
 
 ## Usage
 
 ```bash
 pip install {{ pypi_name }}
-meds-extract-run spec={{ dataset_name }} output_dir=/path/to/output
+meds-extract-run spec={{ dataset_name }} output_dir=$MEDS_OUTPUT_DIR
 ```
 
 {% if has_demo -%}
 To run against the smaller open demo release instead, add `dataset_key=demo`.
 
 {% endif -%}
-Raw data is downloaded automatically per the `sources:` block of the packaged configuration; set any
-required credentials as environment variables (see below). To run against pre-staged raw data
-instead, pass `do_download=false input_dir=/path/to/raw/data`.
+Raw data is downloaded as the `sources:` block of the packaged spec says; set any credentials as
+environment variables. To run on raw data you already have, add `do_download=false input_dir=$RAW_INPUT_DIR`.
+The output is a MEDS dataset (`data/` and `metadata/`, per the
+[MEDS standard](https://medical-event-data-standard.github.io/)), with the dataset name and version
+recorded in `metadata/dataset.json`.
 
-The output directory will contain the extracted MEDS dataset (`data/` and `metadata/`, per the
-[MEDS standard](https://medical-event-data-standard.github.io/)), with dataset name and version
-provenance stamped in `metadata/dataset.json` automatically.
+## How this ETL is defined
 
-<!-- TODO: document dataset access requirements (e.g. credential setup, DUAs) and any
-     dataset-specific notes here. -->
+The whole ETL is one MESSY file,
+[`src/{{ package_name }}/event_configs.yaml`](src/{{ package_name }}/event_configs.yaml): `etl:` holds
+the run settings and the post-stages, every other top-level key except `_defaults` and `sources` is a
+raw table whose rows become MEDS events, and `sources:` says where the raw data lives. The
+`MEDS_extract.pipelines` entry point in `pyproject.toml` registers it as `{{ dataset_name }}`, and
+MEDS-Extract's `meds-extract-run` does the rest. After the canonical stages, the spec runs, in this
+order:
 
-## How this package works
+1. `sumeds_link_unit_siblings`: codes that differ only in their unit get the code without it as a parent;
+2. `sumeds_normalize_units`: every `unit` in UCUM;
+3. this ETL's own post-stages, if any;
+4. `sumeds_enrich`: vocabulary tags, titles and parents (see below).
 
-This is a *config-only* ETL package: its entire substance is
-[`src/{{ package_name }}/configs/event_configs.yaml`](src/{{ package_name }}/configs/event_configs.yaml),
-a MESSY (MEDS-Extract Specification Syntax YAML) file declaring where the raw data lives
-(`sources:`) and how its rows map to MEDS events. The `MEDS_extract.pipelines` entry point in
-`pyproject.toml` registers that file under the name `{{ dataset_name }}`, and MEDS-Extract's
-generic runner (`meds-extract-run`) does everything else: staged download, the canonical extraction
-pipeline, and provenance stamping. See the
-[MEDS-Extract documentation](https://github.com/mmcdermott/MEDS_extract) for the MESSY format and
-runner details.
+## Events
 
-## Development
+<!-- TODO: one row per code family: the code layout, the source table and columns, time, value. -->
+
+| Code                                         | Source                 | Time        | Value   |
+| -------------------------------------------- | ---------------------- | ----------- | ------- |
+| `MEDS_BIRTH`                                 | `patients.birth_date`  | birth date  |         |
+| `DIAGNOSIS//ICD10CM//<code>`                 | `diagnoses.icd10_code` | `charttime` |         |
+| `LAB//<item>//<unit>` (`UNK` without a unit) | `labs`                 | `charttime` | `value` |
+
+## Code metadata
+
+Every code is described in `metadata/codes.parquet` from the release itself (each event's
+`_metadata: _self:` block), and numeric codes carry their `unit`.
+
+<!-- TODO: where descriptions, units and parents come from, and what is missing. -->
+
+## Enriching code metadata with suMEDS
+
+External-ontology work lives in [suMEDS](https://github.com/rvandewater/suMEDS), not in this ETL. The
+package ships its rules,
+[`src/{{ package_name }}/sumeds_rules.yaml`](src/{{ package_name }}/sumeds_rules.yaml), registered in
+suMEDS's `sumeds.rules` entry-point group under the spec's name, `{{ dataset_name }}`, so
+`--rules {{ dataset_name }}` works for any suMEDS command, and the spec's `sumeds_enrich` stage applies
+them.
+
+`metadata/dataset.json` says whether a build is enriched: `sumeds_enrichment.enriched` is `true` (with
+the rules, pack source and coverage) or `false` (with the error and the `retry` command):
 
 ```bash
-uv sync --group dev --group tests
-uv run pre-commit install
-uv run pytest tests/ -v
+jq .sumeds_enrichment.enriched $MEDS_OUTPUT_DIR/metadata/dataset.json
 ```
 
-The test suite validates offline that the packaged MESSY file is registered and parses{% if has_demo %}, and
-runs the full pipeline end-to-end against the demo release{% endif %}.
+Enrichment soft-fails: without internet access, say, the ETL still succeeds with
+`metadata/codes.parquet` as MEDS-Extract wrote it. The warning, with the command that finishes the
+enrichment, is in `$MEDS_OUTPUT_DIR/.logs/pipeline.log`. Running `meds-extract-run` again does not retry
+the stage; `suMEDS-enrich` does:
 
-To publish: set up a [PyPI trusted publisher](https://docs.pypi.org/trusted-publishers/) for this
-repository (see [the template's
-instructions](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template#pypi) for a
-walkthrough), then push a version tag (e.g. `git tag 0.1.0 && git push origin 0.1.0`) — the release
-workflow builds, publishes to PyPI, and creates a GitHub release. Optionally archive releases on
+```bash
+suMEDS-enrich $MEDS_OUTPUT_DIR
+# Air-gapped: from a copy of the sumeds-ontologies packs directory
+suMEDS-enrich $MEDS_OUTPUT_DIR --ontology-source /path/to/sumeds-ontologies/ontologies --offline
+# The plain, unenriched ETL
+meds-extract-run spec={{ dataset_name }} output_dir=$MEDS_OUTPUT_DIR skip_stages=[sumeds_enrich]
+# Make a failed enrichment fail the run
+meds-extract-run spec={{ dataset_name }} output_dir=$MEDS_OUTPUT_DIR "overrides=['++stage_cfg.strict=true']"
+```
+
+Enrichment never overwrites what the ETL wrote: descriptions and `parent_codes` stay, and new parents
+are appended.
+
+<!-- TODO: what the rules add, rule by rule. -->
+
+## Data notes
+
+<!-- TODO: quirks of the release that the spec handles (null spellings, time zones, units, ...). -->
+
+## Testing
+
+The release cannot be used in CI, so
+[`tests/conftest.py`](tests/conftest.py) writes a tiny, fully synthetic input in its layout:
+
+- [`tests/e2e_synthetic_test.py`](tests/e2e_synthetic_test.py) runs `meds-extract-run spec={{ dataset_name }}` over it without the enrichment stage and checks the output;
+- [`tests/test_config.py`](tests/test_config.py) checks that the spec loads and that every event describes its codes;
+- [`tests/test_sumeds_rules.py`](tests/test_sumeds_rules.py) and
+    [`tests/test_run_with_enrichment.py`](tests/test_run_with_enrichment.py) are suMEDS's shared contract
+    tests (`sumeds.testing.contracts`, see suMEDS's
+    [Testing an ETL](https://github.com/rvandewater/suMEDS/blob/main/docs/testing.md)). They check the
+    rules, the post-stage order, and the enrichment against a tiny local ontology source, offline,
+    including its soft failure, `suMEDS-enrich` retry and `strict`.
+{%- if has_demo %}
+- [`tests/e2e_demo_test.py`](tests/e2e_demo_test.py) runs the whole ETL on the open demo release.
+{%- endif %}
+
+The [Synthetic ETL workflow](.github/workflows/synthetic-etl.yaml) also generates raw files from the
+spec with [MESSY-synth](https://pypi.org/project/MESSY-synth/) and runs the ETL over them. All of these
+check the spec's mechanics, not its agreement with the real release; never commit raw data or MEDS output
+derived from it.
+
+```bash
+uv sync --group dev
+uv run pre-commit install
+uv run pytest tests/ -v
+uv run pre-commit run --all-files
+```
+
+## Summary statistics
+
+`tests/regression/full_summary_stats.json` is a
+[meds_summary_stats](https://github.com/Medical-Event-Data-Standard/meds_summary_stats) fingerprint of
+the MEDS dataset this ETL builds from the full release: counts, code-vocabulary digests, value and time
+distributions, code-metadata coverage, splits and schema. It names no code and reports no cell of fewer
+than 20 subjects and no minimum or maximum, which is what makes it safe to commit. Its diff shows what
+an ETL change did to the output. Regenerate it in every pull request that changes the output, from a
+build of that branch:
+
+```bash
+# Build the release with this checkout, then summarize it
+scripts/summary_stats.sh full --input-dir $RAW_INPUT_DIR
+# Or summarize a build of this checkout you already have
+scripts/summary_stats.sh full --meds-dir $MEDS_OUTPUT_DIR
+```
+
+Both print how the statistics changed against the committed baseline before overwriting it, and refuse
+a build whose enrichment failed. Add `--compare` to check a build without writing anything; it exits 1
+when [`tests/regression/policy.yaml`](tests/regression/policy.yaml) flags an error. The
+[Summary stats workflow](.github/workflows/summary-stats.yaml) warns when a pull request changes `src/`
+without regenerating the baseline.
+
+## Releasing
+
+Set up a [PyPI trusted publisher](https://docs.pypi.org/trusted-publishers/) for this repository (see
+[the template's instructions](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template#pypi)),
+then push a version tag (e.g. `git tag 0.1.0 && git push origin 0.1.0`): the release workflow builds,
+publishes to PyPI and creates a signed GitHub release. Optionally archive releases on
 [Zenodo](https://docs.github.com/en/repositories/archiving-a-github-repository/referencing-and-citing-content)
-for a citable DOI, and update `CITATION.cff` accordingly.
+for a citable DOI, and update `CITATION.cff`.
 
 This repository was generated from the
-[ETL_MEDS_Template](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template) copier
-template; run `uvx copier update` (with a clean git tree) to pull in template improvements.
+[ETL_MEDS_Template](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template) copier template;
+run `uvx copier update` (with a clean git tree) to pull in template improvements.
+
+## Breaking changes
+
+Each release that changes the output (codes, columns, values) gets an entry here, newest first: what
+changed, from which version, and how to migrate (an old → new code mapping or regex).
+
+None yet.
+
+## Citation
+
+<!-- TODO: how to cite the dataset (and this ETL, see CITATION.cff). -->

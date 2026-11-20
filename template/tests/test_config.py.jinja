@@ -1,0 +1,40 @@
+"""Offline checks of the packaged MESSY spec.
+
+``MessyConfig.load`` resolves the registered ``MEDS_extract.pipelines`` entry point to the packaged spec
+and compiles every event block (``sources:`` interpolations stay unresolved, so no credentials are
+needed). This proves the entry point is wired, the YAML ships as package data and the spec parses.
+"""
+
+from pathlib import Path
+
+import yaml
+from MEDS_extract.config import MessyConfig
+
+SPEC = "{{ dataset_name }}"
+CONFIG_FP = Path(__file__).parents[1] / "src" / "{{ package_name }}" / "event_configs.yaml"
+NOT_TABLES = {"etl", "sources", "_defaults"}
+
+
+def test_registered_spec_loads():
+    config = MessyConfig.load(SPEC)
+    assert config.dataset_name == SPEC
+    # TODO: the raw tables of the real release.
+    assert set(config.table_prefixes) == {"patients", "diagnoses", "labs"}
+
+
+def test_every_event_describes_its_codes():
+    """Every event block carries a `_self` description, so every code family is described."""
+    raw = yaml.safe_load(CONFIG_FP.read_text())
+    events = {
+        f"{table}/{name}": block
+        for table, blocks in raw.items()
+        if table not in NOT_TABLES
+        for name, block in blocks.items()
+        if not name.startswith("_")
+    }
+    undescribed = [
+        name
+        for name, block in events.items()
+        if not block.get("_metadata", {}).get("_self", {}).get("description")
+    ]
+    assert not undescribed, f"event blocks without a description: {undescribed}"

@@ -10,34 +10,79 @@ authors = [
 ]
 description = "{{ package_description }}"
 readme = "README.md"
-# Mirrors MEDS-Extract 0.8's own interpreter range; a looser floor/ceiling here would admit
-# interpreters it cannot be installed on.
+# Mirrors MEDS-Extract 0.9's own interpreter range; a looser range here admits interpreters it
+# cannot be installed on.
 requires-python = ">=3.11.4,<3.14"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-# Capped explicitly below the next minor: MEDS-Extract 0.x minors are breaking (MESSY syntax, runner
-# CLI), so raise this deliberately when migrating. The `[download]` extra provides
-# `meds-extract-download`, which `meds-extract-run` spawns to stage the raw data.
+# The whole ETL is `event_configs.yaml`, run by MEDS-Extract's own `meds-extract-run`. Its
+# `[download]` extra adds `meds-extract-download`, which the runner spawns to stage the raw data.
+# 0.9 writes `unit` in `metadata/codes.parquet` as one String per code (and fails on a code with
+# two units). suMEDS registers the post-stages the spec declares (`sumeds_link_unit_siblings`,
+# `sumeds_normalize_units`, `sumeds_enrich`) and `suMEDS-enrich` for an existing build; its
+# `testing` extra (in the dev group below) holds the contract tests of tests/. Both are capped below
+# the next minor, because their 0.x minors are breaking (MESSY syntax, runner CLI, rules format):
+# raise them deliberately. MEDS-transforms, polars and hydra arrive through them at the versions
+# they fence.
 dependencies = [
-  "MEDS-extract[download]>=0.8.0,<0.9",
+    "meds-extract[download]>=0.9.1,<0.10",
+    "sumeds>=0.6.8,<0.7",
 ]
 
 [dependency-groups]
-dev = ["pre-commit<4"]
-tests = ["pytest"]
+# `shfmt-py` bundles the `shfmt` binary the `mdformat-shfmt` pre-commit hook shells out to.
+# `sumeds[testing]` adds `sumeds.testing`, whose contract tests and helpers tests/ use.
+dev = [
+    "sumeds[testing]>=0.6.8,<0.7",
+    "pre-commit~=3.8",
+    "ruff>=0.11,<1.0",
+    "pytest~=9.0",
+    "shfmt-py==3.12.0.2",
+]
 
 [tool.setuptools_scm]
 fallback_version = "0.0.0"
 
-# Registers this dataset with MEDS-Extract's generic runner: after `pip install`,
-# `meds-extract-run spec={{ dataset_name }} output_dir=...` runs the whole ETL, and the
-# output's provenance metadata is stamped with this package's version automatically.
+# Registers the spec with MEDS-Extract's generic runner: after `pip install`,
+# `meds-extract-run spec={{ dataset_name }} output_dir=...` runs the whole ETL, and the output's
+# provenance metadata is stamped with this package's version.
 [project.entry-points."MEDS_extract.pipelines"]
-"{{ dataset_name }}" = "{{ package_name }}.configs:event_configs.yaml"
+"{{ dataset_name }}" = "{{ package_name }}:event_configs.yaml"
+
+# Registers the suMEDS rules under the same name, so the spec's `sumeds_enrich` stage and
+# `suMEDS-enrich --rules {{ dataset_name }}` find them.
+[project.entry-points."sumeds.rules"]
+"{{ dataset_name }}" = "{{ package_name }}:sumeds_rules.yaml"
+
+# The spec and the rules are not Python files, so they must be listed, or installed wheels lack them.
+[tool.setuptools.package-data]
+{{ package_name }} = ["*.yaml"]
 
 [project.urls]
 Homepage = "https://github.com/{{ github_org }}/{{ github_repo }}"
 Issues = "https://github.com/{{ github_org }}/{{ github_repo }}/issues"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "RUF", # Ruff-specific rules
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "SIM108", # ternary operator suggestions
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
